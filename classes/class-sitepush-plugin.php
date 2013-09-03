@@ -1010,6 +1010,15 @@ class SitePushPlugin
 			'sitepush_options',
 			'sitepush_section_config'
 		);
+		
+		add_settings_field(
+			'sitepush_field_fix_site_urls_in_db',
+			'Fix site URLs in DB',
+			array( $options_screen, 'field_fix_site_urls_in_db' ),
+			'sitepush_options',
+			'sitepush_section_config'
+		);
+
 
 		add_settings_field(
 			'sitepush_field_timezone',

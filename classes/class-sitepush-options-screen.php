@@ -144,6 +144,12 @@ class SitePush_Options_Screen extends SitePush_Screen
 		echo $this->input_checkbox('fix_site_urls', ' Convert site URLs to link to current site', 'Make sure that any URLs to any of your sites domains link to the current site. <br />For example http://dev.example.com/mypage would be converted to http://www.example.com/mypage when viewing www.example.com.<br />This helps to make sure that URLs work across different versions of your sites.<br />If a site has more than one domain defined, URLs will be converted to the first domain given for that site in your sites config file.');
 	}
 
+	
+	function field_fix_site_urls_in_db()
+	{
+		echo $this->input_checkbox('fix_site_urls_in_db', 'Replace statically the URLs on the database', 'This option changes XXX to XXX statically in the database, removing the need of use sitepush plugin on the destination site and also making it more lighter since there\'s no extra sql checker calls everytime');
+	}
+
 	function field_timezone()
 	{
 		echo $this->input_text('timezone','Your default timezone is  <i>' . date_default_timezone_get() . '</i>. If that is not correct, enter your timezone here to make sure that logs and reporting are in your correct local time. See <a href="http://php.net/manual/en/timezones.php" target="_blank">list of supported timezones</a> for valid values.');

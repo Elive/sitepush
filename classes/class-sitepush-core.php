@@ -292,10 +292,136 @@ class SitePushCore
 		//turn maintenance mode off
 		$this->set_maintenance_mode('off');
 
+		//Fix site url in the database
+		if ($this->options->fix_site_urls_in_db)
+		{
+		    $this->add_result("Begin: Fixing site URL in Database",1);		
+		    $this->dest_fix_url_in_db();
+		    $this->add_result("END: Fixing site URL in Database",2);		
+		}
 		return $result;
 	}
-	
 
+//================================================================================================//
+	
+	private function dest_sql_connect($username, $password, $host)
+	{
+	    $conn = mysql_connect($host, $username, $password) or
+		$this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
+	    return $conn;
+	}
+	
+	private function dest_sql_connection_get()
+	{
+	    $db_dest = $this->options->get_db_params( $this->dest );
+
+	    $conn = $this->dest_sql_connect($db_dest['user'], $db_dest['pw'], $db_dest['host']);
+	    mysql_select_db($db_dest['name'], $conn);
+	    if (!$conn)
+	    {
+		$this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
+		return FALSE;
+	    }
+	    return $conn;
+	}
+
+	private function dest_sql_tables_get()
+	{
+	    $db_dest = $this->options->get_db_params( $this->dest );
+	    $sql = "SHOW TABLES FROM $db_dest[name]";
+
+	    $result = mysql_query($sql);
+
+	    $retval = array();
+	    while ($row = mysql_fetch_row($result)) {
+		$retval[] = $row[0];
+	    }
+	    return $retval;
+	}
+
+	private function dest_sql_columns_get($table)
+	{
+	    $sql = "SHOW COLUMNS FROM $table";
+	    $result = mysql_query($sql);
+
+	    $retval = array();
+	    while ($row = mysql_fetch_row($result)) {
+		$retval[] = $row[0];
+	    }
+	    return $retval;
+	}
+
+	private function dest_sql_search_and_replace($table, $column)
+	{
+	    $search  = $this->source_params['domain'];
+	    $replace = $this->dest_params['domain'];
+
+	    $sql = "SELECT `$column` FROM `$table` WHERE `$column` LIKE '%://$search%'";
+	    $result = mysql_query($sql);
+	   
+	    if (mysql_num_rows($result) <= 0) return;
+	    while ($row = mysql_fetch_row($result)) {
+		if (is_serialized($row[0]))
+		{
+		    $data = unserialize($row[0]);
+		    if (is_array($data))
+		    {
+			array_walk_recursive($data, array($this, 'replace_array_url'));
+		    }
+		    $modified = serialize($data);
+		    if (empty($modified) || is_null($modified) || !isset($modified)) continue;
+		    $sql = $this->dest_sql_url_update($table, $column, $modified, $row[0]);
+		    $this->add_result("SQL Update Serialized:<b>$table.$column </b>", 1);
+		}
+		else
+		{
+		    $modified = $this->replace_url("://$search", "://$replace", $row[0]);
+		    $sql = $this->dest_sql_url_update($table, $column, $modified, $row[0]);
+		    $this->add_result("SQL Update:<b>$table.$column </b>", 1);
+		}
+	    }
+	}
+
+	private function replace_array_url(&$value)
+	{
+	    $search  = $this->source_params['domain'];
+	    $replace = $this->dest_params['domain'];
+	    $value  = $this->replace_url("://$search", "://$replace", $value);
+	}
+
+	private function dest_sql_url_update($table, $column, $column_value, $where_value)
+	{
+	    $column_value = mysql_real_escape_string($column_value);
+	    $where_value = mysql_real_escape_string($where_value);
+	    $sql = "UPDATE $table SET $column='$column_value' WHERE $column='$where_value'";
+	    $result = mysql_query($sql);
+	    return $sql;
+	}
+		
+
+	private static function replace_url($search, $replace, $content)
+	{
+	    return str_ireplace($search, $replace, $content);
+	}
+
+	public function dest_fix_url_in_db()
+	{
+	    $this->dest_sql_connection_get();
+
+	    foreach ($this->dest_sql_tables_get() as $table)
+	    {
+		$columns = $this->dest_sql_columns_get($table);
+
+		foreach ($columns as $column)
+		{
+		    $this->dest_sql_search_and_replace($table, $column);
+		}
+	    }
+
+	}
+
+//================================================================================================//
+	
 	/**
 	 * Clear caches on destination. Will attempt to clear W3TC and SuperCache,
 	 * and empty any directories defined in sites.ini.php 'caches' parameter.

@@ -26,7 +26,7 @@ class SitePushOptions
 	//parameters which get initialised and get whitespace trimmed
 	private $trim_params = array('sites_conf', 'dbs_conf', 'domain_map_conf', 'timezone', 'debug_output_level', 'capability', 'admin_capability', 'cache_key', 'plugin_activates', 'plugin_deactivates', 'backup_path', 'backup_keep_time', 'rsync_path', 'dont_sync', 'mysql_path', 'mysqldump_path');
 	//parameters which just get initialised
-	private $no_trim_params = array('accept', 'fix_site_urls', 'only_admins_login_to_live', 'non_admin_exclude_comments', 'non_admin_exclude_options');
+	private $no_trim_params = array('accept', 'fix_site_urls', 'fix_site_urls_in_db', 'only_admins_login_to_live', 'non_admin_exclude_comments', 'non_admin_exclude_options');
 	private $site_params = array( 'label', 'name', 'web_path', 'db', 'live', 'default', 'cache', 'caches', 'domain', 'domains', 'wp_dir' );
 	private $all_params; //set in __construct
 
@@ -61,6 +61,7 @@ class SitePushOptions
 	public $mysqldump_path;
 
 	public $fix_site_urls;
+	public $fix_site_urls_in_db;
 
 	//Internal options - can only be changed here
 	public $mask_passwords = TRUE; //mask passwords from results log
@@ -188,6 +189,7 @@ class SitePushOptions
 
 		//checkbox params - can only initialise to FALSE or else they are always set to TRUE whatever user wants
 		if( !array_key_exists( 'fix_site_urls', $options ) ) $options['fix_site_urls'] = FALSE;
+		if( !array_key_exists( 'fix_site_urls_in_db', $options ) ) $options['fix_site_urls_in_db'] = FALSE;
 		if( !array_key_exists( 'only_admins_login_to_live', $options ) ) $options['only_admins_login_to_live'] = FALSE;
 		if( !array_key_exists( 'non_admin_exclude_comments', $options ) ) $options['non_admin_exclude_comments'] = FALSE;
 		if( !array_key_exists( 'non_admin_exclude_options', $options ) ) $options['non_admin_exclude_options'] = FALSE;
