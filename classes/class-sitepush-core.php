@@ -356,10 +356,13 @@ class SitePushCore
 	    $replace = $this->dest_params['domain'];
 
 	    $sql = "SELECT `$column` FROM `$table` WHERE `$column` LIKE '%://$search%'";
+	    $this->add_result("SQL_Debug: Line:".__LINE__." :: $sql");
 	    $result = mysql_query($sql);
 	    mysql_error();
 	   
+	    $this->add_result("SQL_Debug: Line:".__LINE__." :: ".mysql_num_rows($result)."");
 	    if (mysql_num_rows($result) <= 0) return;
+
 	    while ($row = mysql_fetch_row($result)) {
 		if (is_serialized($row[0]))
 		{
@@ -411,10 +414,12 @@ class SitePushCore
 
 	    foreach ($tables as $table)
 	    {
+		$this->add_result("SQL_Debug: Line:".__LINE__." :: Table:$table");
 		$columns = $this->el_DEST_db_columns_get($table);
 
 		foreach ($columns as $column)
 		{
+		    $this->add_result("SQL_Debug: Line:".__LINE__." :: Column:$column");
 		    $this->el_DEST_db_search_and_replace($table, $column);
 		}
 	    }
