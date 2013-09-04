@@ -317,7 +317,6 @@ class SitePushCore
 
 	    $conn = $this->el_DEST_db_connect($db_dest['user'], $db_dest['pw'], $db_dest['host']);
 	    mysql_select_db($db_dest['name'], $conn);
-	    print_r($db_dest);
 	    if (!$conn)
 	    {
 		$this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
@@ -332,11 +331,10 @@ class SitePushCore
 	    $sql = "SHOW TABLES FROM $db_dest[name]";
 
 	    $result = mysql_query($sql);
-	    $this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
+	    //$this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
 
 	    $retval = array();
 	    while ($row = mysql_fetch_row($result)) {
-		echo "$row[0]<br>";
 		$retval[] = $row[0];
 	    }
 	    return $retval;
@@ -360,13 +358,9 @@ class SitePushCore
 	    $replace = $this->dest_params['domain'];
 
 	    $sql = "SELECT `$column` FROM `$table` WHERE `$column` LIKE '%://$search%'";
-	    $this->add_result("SQL_Debug: Line:".__LINE__." :: $sql");
 	    $result = mysql_query($sql);
-	    $this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
 	   
-	    $this->add_result("SQL_Debug: Line:".__LINE__." :: ".mysql_num_rows($result)."");
 	    if (mysql_num_rows($result) <= 0) return;
-
 	    while ($row = mysql_fetch_row($result)) {
 		if (is_serialized($row[0]))
 		{
@@ -414,18 +408,17 @@ class SitePushCore
 	public function elive_fix_site_url()
 	{
 	    $conn = $this->el_DEST_db_connection_get();
-	    $this->add_result("SQL_Debug: Line:".__LINE__." :: Connection: $conn");
+	    //$this->add_result("SQL_Debug: Line:".__LINE__." :: Connection: $conn");
 	    $tables = $this->el_DEST_db_tables_get($conn);
-	    print_r($tables);
 
 	    foreach ($tables as $table)
 	    {
-		$this->add_result("SQL_Debug: Line:".__LINE__." :: Table:$table");
+		//$this->add_result("SQL_Debug: Line:".__LINE__." :: Table:$table");
 		$columns = $this->el_DEST_db_columns_get($table);
 
 		foreach ($columns as $column)
 		{
-		    $this->add_result("SQL_Debug: Line:".__LINE__." :: Column:$column");
+		    //$this->add_result("SQL_Debug: Line:".__LINE__." :: Column:$column");
 		    $this->el_DEST_db_search_and_replace($table, $column);
 		}
 	    }
