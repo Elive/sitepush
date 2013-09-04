@@ -410,7 +410,9 @@ class SitePushCore
 	public function elive_fix_site_url()
 	{
 	    $conn = $this->el_DEST_db_connection_get();
+	    $this->add_result("SQL_Debug: Line:".__LINE__." :: Connection: $conn");
 	    $tables = $this->el_DEST_db_tables_get($conn);
+	    print_r($tables);
 
 	    foreach ($tables as $table)
 	    {
