@@ -296,7 +296,7 @@ class SitePushCore
 		if ($this->options->fix_site_urls_in_db)
 		{
 		    $this->add_result("Begin: Fixing site URL in Database",1);		
-		    $this->elive_fix_site_url();
+		    $this->dest_fix_url_in_db();
 		    $this->add_result("END: Fixing site URL in Database",2);		
 		}
 		return $result;
@@ -304,18 +304,18 @@ class SitePushCore
 
 //================================================================================================//
 	
-	private function el_DEST_db_connect($username, $password, $host)
+	private function dest_sql_connect($username, $password, $host)
 	{
 	    $conn = mysql_connect($host, $username, $password) or
 		$this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
 	    return $conn;
 	}
 	
-	private function el_DEST_db_connection_get()
+	private function dest_sql_connection_get()
 	{
 	    $db_dest = $this->options->get_db_params( $this->dest );
 
-	    $conn = $this->el_DEST_db_connect($db_dest['user'], $db_dest['pw'], $db_dest['host']);
+	    $conn = $this->dest_sql_connect($db_dest['user'], $db_dest['pw'], $db_dest['host']);
 	    mysql_select_db($db_dest['name'], $conn);
 	    if (!$conn)
 	    {
@@ -325,13 +325,12 @@ class SitePushCore
 	    return $conn;
 	}
 
-	private function el_DEST_db_tables_get($conn)
+	private function dest_sql_tables_get()
 	{
 	    $db_dest = $this->options->get_db_params( $this->dest );
 	    $sql = "SHOW TABLES FROM $db_dest[name]";
 
 	    $result = mysql_query($sql);
-	    //$this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
 
 	    $retval = array();
 	    while ($row = mysql_fetch_row($result)) {
@@ -340,7 +339,7 @@ class SitePushCore
 	    return $retval;
 	}
 
-	private function el_DEST_db_columns_get($table)
+	private function dest_sql_columns_get($table)
 	{
 	    $sql = "SHOW COLUMNS FROM $table";
 	    $result = mysql_query($sql);
@@ -352,7 +351,7 @@ class SitePushCore
 	    return $retval;
 	}
 
-	private function el_DEST_db_search_and_replace($table, $column)
+	private function dest_sql_search_and_replace($table, $column)
 	{
 	    $search  = $this->source_params['domain'];
 	    $replace = $this->dest_params['domain'];
@@ -367,30 +366,30 @@ class SitePushCore
 		    $data = unserialize($row[0]);
 		    if (is_array($data))
 		    {
-			array_walk_recursive($data, array($this, 'el_replace_array_url'));
+			array_walk_recursive($data, array($this, 'replace_array_url'));
 		    }
 		    $modified = serialize($data);
 		    if (empty($modified) || is_null($modified) || !isset($modified)) continue;
-		    $sql = $this->el_DEST_db_update_url($table, $column, $modified, $row[0]);
+		    $sql = $this->dest_sql_url_update($table, $column, $modified, $row[0]);
 		    $this->add_result("SQL Update Serialized:<b>$table.$column </b>", 1);
 		}
 		else
 		{
-		    $modified = $this->el_replace_url("://$search", "://$replace", $row[0]);
-		    $sql = $this->el_DEST_db_update_url($table, $column, $modified, $row[0]);
+		    $modified = $this->replace_url("://$search", "://$replace", $row[0]);
+		    $sql = $this->dest_sql_url_update($table, $column, $modified, $row[0]);
 		    $this->add_result("SQL Update:<b>$table.$column </b>", 1);
 		}
 	    }
 	}
 
-	private function el_replace_array_url(&$value)
+	private function replace_array_url(&$value)
 	{
 	    $search  = $this->source_params['domain'];
 	    $replace = $this->dest_params['domain'];
-	    $value  = $this->el_replace_url("://$search", "://$replace", $value);
+	    $value  = $this->replace_url("://$search", "://$replace", $value);
 	}
 
-	private function el_DEST_db_update_url($table, $column, $column_value, $where_value)
+	private function dest_sql_url_update($table, $column, $column_value, $where_value)
 	{
 	    $column_value = mysql_real_escape_string($column_value);
 	    $where_value = mysql_real_escape_string($where_value);
@@ -400,34 +399,29 @@ class SitePushCore
 	}
 		
 
-	private static function el_replace_url($search, $replace, $content)
+	private static function replace_url($search, $replace, $content)
 	{
 	    return str_ireplace($search, $replace, $content);
 	}
 
-	public function elive_fix_site_url()
+	public function dest_fix_url_in_db()
 	{
-	    $conn = $this->el_DEST_db_connection_get();
-	    //$this->add_result("SQL_Debug: Line:".__LINE__." :: Connection: $conn");
-	    $tables = $this->el_DEST_db_tables_get($conn);
+	    $this->dest_sql_connection_get();
 
-	    foreach ($tables as $table)
+	    foreach ($this->dest_sql_tables_get() as $table)
 	    {
-		//$this->add_result("SQL_Debug: Line:".__LINE__." :: Table:$table");
-		$columns = $this->el_DEST_db_columns_get($table);
+		$columns = $this->dest_sql_columns_get($table);
 
 		foreach ($columns as $column)
 		{
-		    //$this->add_result("SQL_Debug: Line:".__LINE__." :: Column:$column");
-		    $this->el_DEST_db_search_and_replace($table, $column);
+		    $this->dest_sql_search_and_replace($table, $column);
 		}
 	    }
 
 	}
 
-	
-
 //================================================================================================//
+	
 	/**
 	 * Clear caches on destination. Will attempt to clear W3TC and SuperCache,
 	 * and empty any directories defined in sites.ini.php 'caches' parameter.
