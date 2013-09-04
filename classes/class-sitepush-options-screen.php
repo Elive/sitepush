@@ -147,7 +147,7 @@ class SitePush_Options_Screen extends SitePush_Screen
 	
 	function field_fix_site_urls_in_db()
 	{
-		echo $this->input_checkbox('fix_site_urls_in_db', ' Replace \'Dev\' Site URL to \'Live\' Site URL', 'This option changes http://dev.xyz.com to http://live.xyz.com in the Database.');
+		echo $this->input_checkbox('fix_site_urls_in_db', 'Replace statically the URLs on the database', 'This option changes XXX to XXX statically in the database, removing the need of use sitepush plugin on the destination site and also making it more lighter since there\'s no extra sql checker calls everytime');
 	}
 
 	function field_timezone()
