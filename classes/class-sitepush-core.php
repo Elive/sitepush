@@ -319,7 +319,7 @@ class SitePushCore
 	    mysql_select_db($db_dest['label'], $conn);
 	    if (!$conn)
 	    {
-		mysql_error();
+		$this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
 		return FALSE;
 	    }
 	    return $conn;
@@ -331,7 +331,7 @@ class SitePushCore
 	    $sql = "SHOW TABLES FROM $db_dest[label]";
 
 	    $result = mysql_query($sql);
-	    mysql_error();
+	    $this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
 
 	    $retval = array();
 	    while ($row = mysql_fetch_row($result)) {
@@ -361,7 +361,7 @@ class SitePushCore
 	    $sql = "SELECT `$column` FROM `$table` WHERE `$column` LIKE '%://$search%'";
 	    $this->add_result("SQL_Debug: Line:".__LINE__." :: $sql");
 	    $result = mysql_query($sql);
-	    mysql_error();
+	    $this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
 	   
 	    $this->add_result("SQL_Debug: Line:".__LINE__." :: ".mysql_num_rows($result)."");
 	    if (mysql_num_rows($result) <= 0) return;
