@@ -329,10 +329,13 @@ class SitePushCore
 	{
 	    $db_dest = $this->options->get_db_params( $this->dest );
 	    $sql = "SHOW TABLES FROM $db_dest[label]";
+
 	    $result = mysql_query($sql);
+	    mysql_error();
 
 	    $retval = array();
 	    while ($row = mysql_fetch_row($result)) {
+		echo "$row[0]<br>";
 		$retval[] = $row[0];
 	    }
 	    return $retval;
