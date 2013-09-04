@@ -316,6 +316,7 @@ class SitePushCore
 	    $db_dest = $this->options->get_db_params( $this->dest );
 
 	    $conn = $this->el_DEST_db_connect($db_dest['user'], $db_dest['pw'], $db_dest['host']);
+	    $this->add_result("SQL_Debug: Line:".__LINE__." :: Connection SQL: $conn");
 	    mysql_select_db($db_dest['label'], $conn);
 	    if (!$conn)
 	    {
