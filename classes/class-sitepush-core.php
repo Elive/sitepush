@@ -316,7 +316,7 @@ class SitePushCore
 	    $db_dest = $this->options->get_db_params( $this->dest );
 
 	    $conn = $this->el_DEST_db_connect($db_dest['user'], $db_dest['pw'], $db_dest['host']);
-	    mysql_select_db($db_dest['label'], $conn);
+	    mysql_select_db($db_dest['name'], $conn);
 	    print_r($db_dest);
 	    if (!$conn)
 	    {
@@ -329,7 +329,7 @@ class SitePushCore
 	private function el_DEST_db_tables_get($conn)
 	{
 	    $db_dest = $this->options->get_db_params( $this->dest );
-	    $sql = "SHOW TABLES FROM $db_dest[label]";
+	    $sql = "SHOW TABLES FROM $db_dest[name]";
 
 	    $result = mysql_query($sql);
 	    $this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
