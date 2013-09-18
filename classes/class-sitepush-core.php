@@ -319,7 +319,7 @@ class SitePushCore
 	
 	private function dest_sql_connection_get()
 	{
-	    $db_dest = $this->options->get_db_params( $this->dest );
+	    $db_dest = $this->options->get_db_params_for_site( $this->dest );
 
 	    $conn = $this->dest_sql_connect($db_dest['user'], $db_dest['pw'], $db_dest['host']);
 	    mysql_select_db($db_dest['name'], $conn);
@@ -333,7 +333,7 @@ class SitePushCore
 
 	private function dest_sql_tables_get()
 	{
-	    $db_dest = $this->options->get_db_params( $this->dest );
+	    $db_dest = $this->options->get_db_params_for_site( $this->dest );
 	    $sql = "SHOW TABLES FROM $db_dest[name]";
 
 	    $result = mysql_query($sql);
