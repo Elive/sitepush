@@ -70,35 +70,138 @@ class SitePushMyMail
 
 //	print_r($this->db_dest);
 
+	global $wpdb;
+	$wpdb->select($this->db_dest['name']);
+	$wpdb->show_errors();
+
 	$this->myMail_posts_data_insert();
+	$this->myMail_terms_data_insert();
+	$this->myMail_term_relationships_data_insert();
+
+	$wpdb->select($this->db_soruce['name']);
+    }
+
+    private function myMail_term_relationships_data_insert()
+    {
+	if (!is_array($this->term_taxonomy_DATA)) return -1;
+	if (!is_array($this->posts_DATA)) return -1;
+	if (!is_array($this->term_relationships_DATA)) return -1;
+	global $wpdb;
+
+	$live_site_term_relationships_DATA = array();
+	$table = $this->tables['term_relationships'];
+
+	foreach ($this->term_relationships_DATA as $term_relationships)
+	{
+	    $object_id = $term_relationships['object_id'];
+	    $term_taxonomy_id = $term_relationships['term_taxonomy_id'];
+
+	    foreach ($this->term_taxonomy_DATA as $term_taxonomy)
+	    {
+		if ($term_relationships['term_taxonomy_id'] != $term_taxonomy['term_taxonomy_id']) continue;
+
+		$term_taxonomy_id = $term_taxonomy['term_taxonomy_id'];
+		if (isset($term_taxonomy['term_taxonomy_id_NEW']))
+		    $term_taxonomy_id = $term_taxonomy['term_taxonomy_id_NEW'];
+		break;
+	    }
+
+	    foreach ($this->posts_DATA as $posts)
+	    {
+		if ($term_relationships['object_id'] != $posts['ID']) continue;
+
+		$object_id = $posts['ID'];
+		if (isset($posts['ID_NEW']))
+		    $object_id = $posts['ID_NEW'];
+		break;
+	    }
+
+	    $term_relationships['object_id'] = $object_id;
+	    $term_relationships['term_taxonomy_id'] = $term_taxonomy_id;
+
+	    $wpdb->insert($wpdb->term_relationships, $term_relationships);
+	    echo "Inserting $table.object_id:$object_id -- $table.term_taxonomy_id:$term_taxonomy_id\n";
+	}
+    }
+
+    private function myMail_term_taxonomy_data_insert($old_term_id, $new_term_id)
+    {
+	if (!is_array($this->terms_DATA)) return -1;
+	if (!is_array($this->term_taxonomy_DATA)) return -1;
+	global $wpdb;
+
+	$live_site_term_taxonomy_DATA = array();
+	$table = $this->tables['term_taxonomy'];
+
+	foreach ($this->term_taxonomy_DATA as $term_taxonomy)
+	{
+	    if ($term_taxonomy['term_id'] != $old_term_id) continue;
+
+	    $old_term_taxonomy_id = $new_term_taxonomy_id = $term_taxonomy['term_taxonomy_id'];
+	    $term_taxonomy['term_taxonomy_id'] = '';
+
+	    if ($old_term_id != $new_term_id)
+		$term_taxonomy['term_id'] = $new_term_id;
+
+	    $wpdb->insert($wpdb->term_taxonomy, $term_taxonomy);
+	    if ($old_term_taxonomy_id != $wpdb->insert_id)
+		$term_taxonomy['term_taxonomy_id_NEW'] = $new_term_taxonomy_id = $wpdb->insert_id;
+
+	    echo "Inserting $table.term_taxonomy_id:$new_term_taxonomy_id\n";
+	    $term_taxonomy['term_taxonomy_id'] = $old_term_taxonomy_id;
+	    $live_site_term_taxonomy_DATA[] = $term_taxonomy;
+	}
+	$this->term_taxonomy_DATA = $live_site_term_taxonomy_DATA;
+    }
+
+    private function myMail_terms_data_insert()
+    {
+	if (!is_array($this->terms_DATA)) return -1;
+	global $wpdb;
+
+	$live_site_terms_DATA = array();
+	$table = $this->tables['terms'];
+
+	foreach ($this->terms_DATA as $terms)
+	{
+	    $old_terms_id = $new_terms_id = $terms['term_id'];
+	    $terms['term_id'] = '';
+
+	    $wpdb->insert($wpdb->terms, $terms);
+	    if ($old_terms_id != $wpdb->insert_id)
+		$terms['term_id_NEW'] = $new_terms_id = $wpdb->insert_id;
+
+	    echo "Inserting $table.term_id:$new_terms_id\n";
+	    $this->myMail_term_taxonomy_data_insert($old_terms_id, $new_terms_id);
+	    $live_site_terms_DATA[] = $terms;
+	}
+	$this->terms_DATA = $live_site_terms_DATA;
     }
 
     private function myMail_postmeta_data_insert($old_post_id, $new_post_id)
     {
 	if (!is_array($this->postmeta_DATA)) return -1;
 	if (!is_array($this->posts_DATA)) return -1;
-
 	global $wpdb;
 
 	$table = $this->tables['postmeta'];
 	foreach ($this->postmeta_DATA as $postmeta)
 	{
-	    if ($postmeta['post_id'] == $old_post_id)
-	    {
-		$old_meta_id = $new_meta_id = $postmeta['meta_id'];
-		$postmeta['meta_id'] = '';
+	    if ($postmeta['post_id'] != $old_post_id) continue;
 
-		if ($old_post_id != $new_post_id)
-		    $postmeta['post_id'] = $new_post_id;
+	    $old_meta_id = $new_meta_id = $postmeta['meta_id'];
+	    $postmeta['meta_id'] = '';
 
-		$wpdb->insert($wpdb->postmeta, $postmeta);
+	    if ($old_post_id != $new_post_id)
+		$postmeta['post_id'] = $new_post_id;
 
-		echo "Inserting $table.post_id: $postmeta[post_id] \n";
+	    $wpdb->insert($wpdb->postmeta, $postmeta);
 
-		$postmeta['meta_id'] = $old_meta_id;
-		if ($old_meta_id != $wpdb->insert_id)
-		    $postmeta['meta_id_NEW'] = $new_meta_id = $wpdb->insert_id;
-	    }
+	    echo "Inserting $table.post_id: $postmeta[post_id] \n";
+
+	    $postmeta['meta_id'] = $old_meta_id;
+	    if ($old_meta_id != $wpdb->insert_id)
+		$postmeta['meta_id_NEW'] = $new_meta_id = $wpdb->insert_id;
 	}
     }
 
@@ -106,10 +209,7 @@ class SitePushMyMail
     private function myMail_posts_data_insert()
     {
 	if (!is_array($this->posts_DATA)) return -1;
-
 	global $wpdb;
-//	$wpdb = &$this->live_site_wpdb;
-	$wpdb->select($this->db_dest['name']);
 
 	$live_site_posts_DATA = array();
 	$table = $this->tables['posts'];
@@ -131,10 +231,7 @@ class SitePushMyMail
 	    
 	    $live_site_posts_DATA[] = $posts;
 	}
-	$wpdb->select($this->db_soruce['name']);
 	$this->posts_DATA = $live_site_posts_DATA;
-	//print_r($live_site_posts_DATA);
-
     }
 
     private function myMail_term_taxonomy_data_set()
@@ -149,10 +246,11 @@ class SitePushMyMail
     
     private function myMail_postmeta_data_get()
     {
+	if (count($this->posts_DATA_ID) <= 0) return -1;
 	$post_id = implode(',', $this->posts_DATA_ID);
 	$table = $this->tables['postmeta'];
 	$sql = "SELECT * FROM `$table` WHERE post_id IN ($post_id)";
-	echo $sql;
+	echo "$sql \n";
 	$result = mysql_query($sql);
 
 	if (mysql_num_rows($result) <= 0) return;
@@ -167,12 +265,12 @@ class SitePushMyMail
 
     private function myMail_posts_data_get()
     {
+	if (count($this->term_relationships_OBJECT_ID) <= 0) return -1;
 	$post_id = implode(',', $this->term_relationships_OBJECT_ID);
 	$table = $this->tables['posts'];
 	$sql = "SELECT * FROM `$table` WHERE ID IN ($post_id)";
-	echo $sql;
+	echo "$sql \n";
 	$result = mysql_query($sql);
-
 	if (mysql_num_rows($result) <= 0) return;
 
 	while($row = mysql_fetch_assoc($result))
@@ -188,6 +286,7 @@ class SitePushMyMail
 	$term_taxonomy = implode(',', $this->term_taxonomy_TERM_ID);
 	$table = $this->tables['term_relationships'];
 	$sql = "SELECT * FROM `$table` WHERE term_taxonomy_id IN ($term_taxonomy)";
+	echo "$sql \n";
 	$result = mysql_query($sql);
 
 	if (mysql_num_rows($result) <= 0) return;
@@ -205,6 +304,7 @@ class SitePushMyMail
 	$terms_id = implode(',', $this->term_taxonomy_TERM_ID);
 	$table = $this->tables['terms'];
 	$sql = "SELECT * FROM `$table` WHERE term_id IN ($terms_id)";
+	echo "$sql \n";
 	$result = mysql_query($sql);
 
 	if (mysql_num_rows($result) <= 0) return;
@@ -220,6 +320,7 @@ class SitePushMyMail
     {
 	$table = $this->tables['term_taxonomy'];
 	$sql = "SELECT * FROM `$table` WHERE taxonomy = 'newsletter_lists'";
+	echo "$sql \n";
 	$result = mysql_query($sql);
 
 	if (mysql_num_rows($result) <= 0) return;
