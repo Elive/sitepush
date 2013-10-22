@@ -68,7 +68,7 @@ class SitePushMyMail
 	//print_r($this->posts_DATA);
 	//print_r($this->postmeta_DATA);
 
-//	print_r($this->db_dest);
+	//	print_r($this->db_dest);
 
 	global $wpdb;
 	$wpdb->select($this->db_dest['name']);
@@ -135,20 +135,21 @@ class SitePushMyMail
 
 	foreach ($this->term_taxonomy_DATA as $term_taxonomy)
 	{
-	    if ($term_taxonomy['term_id'] != $old_term_id) continue;
+	    if ($term_taxonomy['term_id'] == $old_term_id)
+	    {
+		$old_term_taxonomy_id = $new_term_taxonomy_id = $term_taxonomy['term_taxonomy_id'];
+		$term_taxonomy['term_taxonomy_id'] = '';
 
-	    $old_term_taxonomy_id = $new_term_taxonomy_id = $term_taxonomy['term_taxonomy_id'];
-	    $term_taxonomy['term_taxonomy_id'] = '';
+		if ($old_term_id != $new_term_id)
+		    $term_taxonomy['term_id'] = $new_term_id;
 
-	    if ($old_term_id != $new_term_id)
-		$term_taxonomy['term_id'] = $new_term_id;
+		$wpdb->insert($wpdb->term_taxonomy, $term_taxonomy);
+		if ($old_term_taxonomy_id != $wpdb->insert_id)
+		    $term_taxonomy['term_taxonomy_id_NEW'] = $new_term_taxonomy_id = $wpdb->insert_id;
 
-	    $wpdb->insert($wpdb->term_taxonomy, $term_taxonomy);
-	    if ($old_term_taxonomy_id != $wpdb->insert_id)
-		$term_taxonomy['term_taxonomy_id_NEW'] = $new_term_taxonomy_id = $wpdb->insert_id;
-
-	    echo "Inserting $table.term_taxonomy_id:$new_term_taxonomy_id\n";
-	    $term_taxonomy['term_taxonomy_id'] = $old_term_taxonomy_id;
+		echo "Inserting $table.term_taxonomy_id:$new_term_taxonomy_id\n";
+		$term_taxonomy['term_taxonomy_id'] = $old_term_taxonomy_id;
+	    }
 	    $live_site_term_taxonomy_DATA[] = $term_taxonomy;
 	}
 	$this->term_taxonomy_DATA = $live_site_term_taxonomy_DATA;
@@ -187,7 +188,7 @@ class SitePushMyMail
 	$table = $this->tables['postmeta'];
 	foreach ($this->postmeta_DATA as $postmeta)
 	{
-	    if ($postmeta['post_id'] != $old_post_id) continue;
+	    if ($postmeta['post_id'] != $old_post_id) continue; //FIXME: if we want to pass back data to postmeta_DATA change this statement
 
 	    $old_meta_id = $new_meta_id = $postmeta['meta_id'];
 	    $postmeta['meta_id'] = '';
@@ -228,7 +229,7 @@ class SitePushMyMail
 	    echo "Inserting $table.ID:$new_post_id\n";
 	    $this->myMail_postmeta_data_insert($old_post_id, $new_post_id);
 
-	    
+
 	    $live_site_posts_DATA[] = $posts;
 	}
 	$this->posts_DATA = $live_site_posts_DATA;
@@ -243,7 +244,7 @@ class SitePushMyMail
 	    print_r($taxonomy);
 	}
     }
-    
+
     private function myMail_postmeta_data_get()
     {
 	if (count($this->posts_DATA_ID) <= 0) return -1;
