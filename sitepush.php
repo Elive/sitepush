@@ -34,6 +34,7 @@ SitePushPlugin::get_instance();
 if( is_admin() )
 {
 	require_once('classes/class-sitepush-core.php');
+	require_once('classes/class-sitepush-mymail.php');
 	require_once('classes/class-sitepush-screen.php');
 	require_once('classes/class-sitepush-options-screen.php');
 	require_once('classes/class-sitepush-push-screen.php');

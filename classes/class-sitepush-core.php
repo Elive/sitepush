@@ -239,6 +239,10 @@ class SitePushCore
 		if( ! @shell_exec("{$this->options->mysqldump_path} --version") )
 			SitePushErrors::add_error( 'mysqldump not found, not configured properly or PHP safe mode is preventing it from being run.' );
 		if( SitePushErrors::is_error() ) return FALSE;
+		
+		$mymail = new SitePushMyMail(
+		    $this->options->get_db_params_for_site($this->dest),
+		    $this->options->get_db_params_for_site($this->source));
 
 		//work out which table(s) to push
 		$tables = '';
@@ -305,6 +309,8 @@ class SitePushCore
 		    $this->dest_fix_url_in_db();
 		    $this->add_result("END: Fixing site URL in Database",2);		
 		}
+		$mymail->initialize();
+		
 		return $result;
 	}
 
