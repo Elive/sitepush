@@ -357,9 +357,8 @@ class SitePushCore
 	    return $retval;
 	}
 
-	private function dest_sql_search_and_replace($table, $column)
+	private function dest_sql_search_and_replace($table, $column, $search)
 	{
-	    $search  = $this->source_params['domain'];
 	    $replace = $this->dest_params['domain'];
 
 	    $sql = "SELECT `$column` FROM `$table` WHERE `$column` LIKE '%://$search%'";
@@ -370,17 +369,18 @@ class SitePushCore
 		if (is_serialized($row[0]))
 		{
 		    $data = unserialize($row[0]);
-		    if (is_array($data))
+		    if (array_walk_recursive($data, array($this, 'replace_array_url')) == TRUE)
 		    {
-			array_walk_recursive($data, array($this, 'replace_array_url'));
+			if ((count(array_diff($data, unserialize($row[0]))) >= 1) && (count($data) >= 1))
+    			{
+			    //$this->add_result("Data DIFF: ".serialize(array_diff($data, unserialize($row[0])))."", 1);
+	
+			    $sql = $this->dest_sql_url_update($table, $column, serialize($data), $row[0]);
+			    $this->add_result("SQL Update Serialized:<b>$table.$column </b>", 1);
+			}
 		    }
-		    else 
-			$this->add_result("Data is not an array: $row[0]", 1);
-
-		    $modified = serialize($data);
-		    if (empty($modified) || is_null($modified) || !isset($modified)) continue;
-		    $sql = $this->dest_sql_url_update($table, $column, $modified, $row[0]);
-		    $this->add_result("SQL Update Serialized:<b>$table.$column </b>", 1);
+		    else
+			$this->add_result("<b>Array Walk FAILED!!!!!!!!!</b>");
 		}
 		else
 		{
@@ -402,9 +402,10 @@ class SitePushCore
 	{
 	    $column_value = mysql_real_escape_string($column_value);
 	    $where_value = mysql_real_escape_string($where_value);
-	    $sql = "UPDATE $table SET $column='$column_value' WHERE $column='$where_value'";
-	    $result = mysql_query($sql);
-	    return $sql;
+
+	    $result = mysql_query("UPDATE $table SET $column='$column_value' WHERE $column='$where_value'");
+	    if (mysql_error()) echo mysql_error();
+	    return $result;
 	}
 		
 
@@ -423,7 +424,7 @@ class SitePushCore
 
 		foreach ($columns as $column)
 		{
-		    $this->dest_sql_search_and_replace($table, $column);
+		    $this->dest_sql_search_and_replace($table, $column, $this->source_params['domain']);
 		}
 	    }
 
