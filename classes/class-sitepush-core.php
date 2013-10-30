@@ -368,6 +368,9 @@ class SitePushCore
 		    {
 			array_walk_recursive($data, array($this, 'replace_array_url'));
 		    }
+		    else 
+			$this->add_result("Data is not an array: $row[0]", 1);
+
 		    $modified = serialize($data);
 		    if (empty($modified) || is_null($modified) || !isset($modified)) continue;
 		    $sql = $this->dest_sql_url_update($table, $column, $modified, $row[0]);
