@@ -383,7 +383,10 @@ class SitePushCore
 			}
 		    }
 		    else
+		    {
 			$this->add_result("<b>Array Walk FAILED!!!!!!!!!</b>");
+			print_r($row[0]);
+		    }
 		}
 		else
 		{
