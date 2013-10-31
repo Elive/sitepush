@@ -357,11 +357,9 @@ class SitePushCore
 	    return $retval;
 	}
 
-	private function dest_sql_search_and_replace($table, $column, $search)
+	private function dest_sql_search_and_replace($table, $column, $search, $replace)
 	{
-	    $replace = $this->dest_params['domain'];
-
-	    $sql = "SELECT `$column` FROM `$table` WHERE `$column` LIKE '%://$search%'";
+	    $sql = "SELECT `$column` FROM `$table` WHERE `$column` LIKE '%$search%'";
 	    $result = mysql_query($sql);
 	   
 	    if (mysql_num_rows($result) <= 0) return;
@@ -376,7 +374,12 @@ class SitePushCore
 			    //$this->add_result("Data DIFF: ".serialize(array_diff($data, unserialize($row[0])))."", 1);
 	
 			    $sql = $this->dest_sql_url_update($table, $column, serialize($data), $row[0]);
-			    $this->add_result("SQL Update Serialized:<b>$table.$column </b>", 1);
+			    $this->add_result("SQL Update Serialized:<b>$table.$column Search: $search </b>", 1);
+			}
+			else if (count($data) >= 1) 
+			{
+			    $sql = $this->dest_sql_url_update($table, $column, serialize($data), $row[0]);
+			    $this->add_result("SQL Update Serialized FALLBACK: <b>$table.$column Search: $search </b>", 1);
 			}
 		    }
 		    else
@@ -384,9 +387,10 @@ class SitePushCore
 		}
 		else
 		{
-		    $modified = $this->replace_url("://$search", "://$replace", $row[0]);
+		    $modified = $this->replace_url($search, $replace, $row[0]);
 		    $sql = $this->dest_sql_url_update($table, $column, $modified, $row[0]);
-		    $this->add_result("SQL Update:<b>$table.$column </b>", 1);
+		    $this->add_result("SQL Update:<b>$table.$column</b>", 1);
+		    //$this->add_result("SQL Update:<b>$table.$column</b> Source: $row[0] Dest: $modified ", 1);
 		}
 	    }
 	}
@@ -396,6 +400,10 @@ class SitePushCore
 	    $search  = $this->source_params['domain'];
 	    $replace = $this->dest_params['domain'];
 	    $value  = $this->replace_url("://$search", "://$replace", $value);
+
+	    $search = $this->source_params['web_path'];
+	    $replace = $this->dest_params['web_path'];
+	    $value  = $this->replace_url($search, $replace, $value);
 	}
 
 	private function dest_sql_url_update($table, $column, $column_value, $where_value)
@@ -424,7 +432,13 @@ class SitePushCore
 
 		foreach ($columns as $column)
 		{
-		    $this->dest_sql_search_and_replace($table, $column, $this->source_params['domain']);
+		    $search = '://'.$this->source_params['domain'];
+		    $replace = '://'.$this->dest_params['domain'];
+		    $this->dest_sql_search_and_replace($table, $column, $search, $replace);
+
+		    $search = $this->source_params['web_path'];
+		    $replace = $this->source_params['web_path'];
+		    $this->dest_sql_search_and_replace($table, $column, $search, $replace);
 		}
 	    }
 
