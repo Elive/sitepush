@@ -366,7 +366,10 @@ class SitePushCore
 	    while ($row = mysql_fetch_row($result)) {
 		if (is_serialized($row[0]))
 		{
+		    if (!unserialize($row[0]))
+    			$data = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.strlen('$2').':\"$2\";'", $data);
 		    $data = unserialize($row[0]);
+
 		    if (array_walk_recursive($data, array($this, 'replace_array_url')) == TRUE)
 		    {
 			if ((count(array_diff($data, unserialize($row[0]))) >= 1) && (count($data) >= 1))
