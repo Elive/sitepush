@@ -380,7 +380,7 @@ class SitePushCore
 			    $this->add_result('Nothing Changed');
 
 			$this->add_result("SQL Updating Serialized:<b>$table.$column Search: $search</b> Encoding: ".mb_detect_encoding($data)."", 1);
-			echo "<b>ORIGINAL</b>: $row[0] <br><b>MODIFIED</b>: $data <br>";
+			//echo "<b>ORIGINAL</b>: $row[0] <br><b>MODIFIED</b>: $data <br>";
 			if (mb_strlen($data) != mb_strlen($row[0]))
 			    $this->add_result('Original Strlen: '.mb_strlen($row[0]).' Modified Strlen: '.mb_strlen($data).'');
 
@@ -396,7 +396,7 @@ class SitePushCore
     			    $data = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.strlen('$2').':\"$2\";'", $data);
 
     			    $this->add_result("SQL Updating Serialized:<b>$table.$column Search: $search</b> Encoding: $mb_encoding", 1);
-			    echo "<b>ORIGINAL</b>: $row[0] <br><b>MODIFIED</b>: $data <br>";
+			    //echo "<b>ORIGINAL</b>: $row[0] <br><b>MODIFIED</b>: $data <br>";
 			    if (strlen($data) != strlen($row[0]))
 				$this->add_result('Original Strlen: '.strlen($row[0]).' Modified Strlen: '.strlen($data).'');
 		    
