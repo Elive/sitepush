@@ -371,16 +371,14 @@ class SitePushCore
 		    //Parse the modified string and count its lenght and update the lenght of the serialized data
 		    $modified = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.strlen('$2').':\"$2\";'", $modified);
 
-
 		    $sql = $this->dest_sql_url_update($table, $column, $modified, $row[0]);
-		    $this->add_result("SQL Update Serialized:<b>$table.$column Search: $search </b>", 1);
+		    $this->add_result("SQL Update Serialized:<b>$table.$column Search: $search</b> Encoding: ".mb_detect_encoding($modified)."", 1);
 		}
 		else
 		{
 		    $modified = $this->replace_url($search, $replace, $row[0]);
 		    $sql = $this->dest_sql_url_update($table, $column, $modified, $row[0]);
-		    $this->add_result("SQL Update:<b>$table.$column</b>", 1);
-		    //$this->add_result("SQL Update:<b>$table.$column</b> Source: $row[0] Dest: $modified ", 1);
+		    $this->add_result("SQL Update:<b>$table.$column Search: $search</b> Encoding: ".mb_detect_encoding($modified)."", 1);
 		}
 	    }
 	}
@@ -389,11 +387,7 @@ class SitePushCore
 	{
 	    $search  = $this->source_params['domain'];
 	    $replace = $this->dest_params['domain'];
-	    $value  = $this->replace_url("://$search", "://$replace", $value);
-
-	    $search = $this->source_params['web_path'];
-	    $replace = $this->dest_params['web_path'];
-	    $value  = $this->replace_url($search, $replace, $value);
+	    $value  = $this->replace_url("/$search", "/$replace", $value);
 	}
 
 	private function dest_sql_url_update($table, $column, $column_value, $where_value)
@@ -422,12 +416,8 @@ class SitePushCore
 
 		foreach ($columns as $column)
 		{
-		    $search = '://'.$this->source_params['domain'];
-		    $replace = '://'.$this->dest_params['domain'];
-		    $this->dest_sql_search_and_replace($table, $column, $search, $replace);
-
-		    $search = $this->source_params['web_path'];
-		    $replace = $this->source_params['web_path'];
+		    $search = '/'.$this->source_params['domain'];
+		    $replace = '/'.$this->dest_params['domain'];
 		    $this->dest_sql_search_and_replace($table, $column, $search, $replace);
 		}
 	    }
