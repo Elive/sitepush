@@ -382,7 +382,7 @@ class SitePushCore
 			$this->add_result("SQL Updating Serialized:<b>$table.$column Search: $search</b> Encoding: ".mb_detect_encoding($data)."", 1);
 			//echo "<b>ORIGINAL</b>: $row[0] <br><b>MODIFIED</b>: $data <br>";
 			if (mb_strlen($data) != mb_strlen($row[0]))
-			    $this->add_result('Original Strlen: '.mb_strlen($row[0]).' Modified Strlen: '.mb_strlen($data).'');
+			    $this->add_result('<b>Original</b> Strlen: '.mb_strlen($row[0]).' <b>Modified</b> Strlen: '.mb_strlen($data).'');
 
 			$this->dest_sql_url_update($table, $column, $data, $row[0]);
 		    }
@@ -398,7 +398,7 @@ class SitePushCore
     			    $this->add_result("SQL Updating Serialized:<b>$table.$column Search: $search</b> Encoding: $mb_encoding", 1);
 			    //echo "<b>ORIGINAL</b>: $row[0] <br><b>MODIFIED</b>: $data <br>";
 			    if (strlen($data) != strlen($row[0]))
-				$this->add_result('Original Strlen: '.strlen($row[0]).' Modified Strlen: '.strlen($data).'');
+				$this->add_result('<b>Original</b> Strlen: '.strlen($row[0]).' <b>Modified</b> Strlen: '.strlen($data).'');
 		    
 			    $this->dest_sql_url_update($table, $column, $data, $row[0]);
 			}
