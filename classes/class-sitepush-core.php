@@ -366,28 +366,54 @@ class SitePushCore
 	    while ($row = mysql_fetch_row($result)) {
 		if (is_serialized($row[0]))
 		{
-		    //Parse the serialize data and replace the string
-		    $modified = $this->replace_url($search, $replace, utf8_encode($row[0]));
-		    //Parse the modified string and count its lenght and update the lenght of the serialized data
-		    $modified = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.mb_strlen('$2').':\"$2\";'", $modified);
+		    $data = $row[0];
+		    $mb_encoding = mb_detect_encoding($data);
 
-		    $sql = $this->dest_sql_url_update($table, $column, utf8_decode($modified), $row[0]);
-		    $this->add_result("SQL Update Serialized:<b>$table.$column Search: $search</b> Encoding: ".mb_detect_encoding($modified)."", 1);
+		    if ($mb_encoding == 'UTF-8')
+		    {
+			//$this->add_result('Serialized Data is UTF-8');
+
+			$this->replace_url($search, $replace, $data);
+			$data = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.mb_strlen('$2').':\"$2\";'", $data);
+
+			if ($data == $row[0])
+			    $this->add_result('Nothing Changed');
+
+			$this->add_result("SQL Updating Serialized:<b>$table.$column Search: $search</b> Encoding: ".mb_detect_encoding($data)."", 1);
+			echo "<b>ORIGINAL</b>: $row[0] <br><b>MODIFIED</b>: $data <br>";
+			if (mb_strlen($data) != mb_strlen($row[0]))
+			    $this->add_result('Original Strlen: '.mb_strlen($row[0]).' Modified Strlen: '.mb_strlen($data).'');
+
+			$this->dest_sql_url_update($table, $column, $data, $row[0]);
+		    }
+		    else
+		    {
+			//$this->add_result('Serialized Data is '.$mb_encoding);
+			if (($mb_encoding == 'ISO-8859-1') ||
+			    ($mb_encoding == 'ASCII'))
+			{
+			    $this->replace_url($search, $replace, $data);
+    			    $data = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.strlen('$2').':\"$2\";'", $data);
+
+    			    $this->add_result("SQL Updating Serialized:<b>$table.$column Search: $search</b> Encoding: $mb_encoding", 1);
+			    echo "<b>ORIGINAL</b>: $row[0] <br><b>MODIFIED</b>: $data <br>";
+			    if (strlen($data) != strlen($row[0]))
+				$this->add_result('Original Strlen: '.strlen($row[0]).' Modified Strlen: '.strlen($data).'');
+		    
+			    $this->dest_sql_url_update($table, $column, $data, $row[0]);
+			}
+			else
+			    $this->add_result('TODO: unknown encoding type, nothing done!');
+		    }
 		}
 		else
 		{
-		    $modified = $this->replace_url($search, $replace, $row[0]);
-		    $sql = $this->dest_sql_url_update($table, $column, $modified, $row[0]);
-		    $this->add_result("SQL Update:<b>$table.$column Search: $search</b> Encoding: ".mb_detect_encoding($modified)."", 1);
+		    $data = $row[0];
+		    $this->replace_url($search, $replace, $data);
+		    $this->dest_sql_url_update($table, $column, $data, $row[0]);
+		    $this->add_result("SQL Update:<b>$table.$column Search: $search</b> Encoding: ".mb_detect_encoding($data)."", 1);
 		}
 	    }
-	}
-
-	private function replace_array_url(&$value)
-	{
-	    $search  = $this->source_params['domain'];
-	    $replace = $this->dest_params['domain'];
-	    $value  = $this->replace_url("/$search", "/$replace", $value);
 	}
 
 	private function dest_sql_url_update($table, $column, $column_value, $where_value)
@@ -401,9 +427,9 @@ class SitePushCore
 	}
 		
 
-	private static function replace_url($search, $replace, $content)
+	private static function replace_url($search, $replace, &$content)
 	{
-	    return str_ireplace($search, $replace, $content);
+	    $content = str_ireplace($search, $replace, $content);
 	}
 
 	public function dest_fix_url_in_db()
@@ -416,8 +442,6 @@ class SitePushCore
 
 	    if ($old_encoding != $new_encoding)
 		$this->add_result("Changed Encoding to $new_encoding was $old_encoding");
-	    else
-		$this->add_result("Encoding remains: $old_encoding");
 
 	    foreach ($this->dest_sql_tables_get() as $table)
 	    {
