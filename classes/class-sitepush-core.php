@@ -367,11 +367,11 @@ class SitePushCore
 		if (is_serialized($row[0]))
 		{
 		    //Parse the serialize data and replace the string
-		    $modified = $this->replace_url($search, $replace, $row[0]);
+		    $modified = $this->replace_url($search, $replace, utf8_encode($row[0]));
 		    //Parse the modified string and count its lenght and update the lenght of the serialized data
-		    $modified = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.strlen('$2').':\"$2\";'", $modified);
+		    $modified = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.mb_strlen('$2').':\"$2\";'", $modified);
 
-		    $sql = $this->dest_sql_url_update($table, $column, $modified, $row[0]);
+		    $sql = $this->dest_sql_url_update($table, $column, utf8_decode($modified), $row[0]);
 		    $this->add_result("SQL Update Serialized:<b>$table.$column Search: $search</b> Encoding: ".mb_detect_encoding($modified)."", 1);
 		}
 		else
@@ -409,6 +409,15 @@ class SitePushCore
 	public function dest_fix_url_in_db()
 	{
 	    $this->dest_sql_connection_get();
+
+	    $old_encoding = mb_internal_encoding();
+	    mb_internal_encoding('UTF-8');
+	    $new_encoding = mb_internal_encoding();
+
+	    if ($old_encoding != $new_encoding)
+		$this->add_result("Changed Encoding to $new_encoding was $old_encoding");
+	    else
+		$this->add_result("Encoding remains: $old_encoding");
 
 	    foreach ($this->dest_sql_tables_get() as $table)
 	    {
