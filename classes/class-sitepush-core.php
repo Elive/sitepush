@@ -366,34 +366,14 @@ class SitePushCore
 	    while ($row = mysql_fetch_row($result)) {
 		if (is_serialized($row[0]))
 		{
-		    if (!unserialize($row[0]))
-		    {
-			$data = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.strlen('$2').':\"$2\";'", $row[0]);
-			$data = unserialize($data);
-		    }
-		    else
-    			$data = unserialize($row[0]);
+		    //Parse the serialize data and replace the string
+		    $modified = $this->replace_url($search, $replace, $row[0]);
+		    //Parse the modified string and count its lenght and update the lenght of the serialized data
+		    $modified = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.strlen('$2').':\"$2\";'", $modified);
 
-		    if (array_walk_recursive($data, array($this, 'replace_array_url')) == TRUE)
-		    {
-			if ((count(array_diff($data, unserialize($row[0]))) >= 1) && (count($data) >= 1))
-    			{
-			    //$this->add_result("Data DIFF: ".serialize(array_diff($data, unserialize($row[0])))."", 1);
-	
-			    $sql = $this->dest_sql_url_update($table, $column, serialize($data), $row[0]);
-			    $this->add_result("SQL Update Serialized:<b>$table.$column Search: $search </b>", 1);
-			}
-			else if (count($data) >= 1) 
-			{
-			    $sql = $this->dest_sql_url_update($table, $column, serialize($data), $row[0]);
-			    $this->add_result("SQL Update Serialized FALLBACK: <b>$table.$column Search: $search </b>", 1);
-			}
-		    }
-		    else
-		    {
-			$this->add_result("<b>Array Walk FAILED!!!!!!!!!</b>");
-			print_r(base64_encode($row[0]));
-		    }
+
+		    $sql = $this->dest_sql_url_update($table, $column, $modified, $row[0]);
+		    $this->add_result("SQL Update Serialized:<b>$table.$column Search: $search </b>", 1);
 		}
 		else
 		{
