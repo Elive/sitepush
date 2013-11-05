@@ -3,6 +3,31 @@
  * SitePushMyMail class
  */
 
+if (isset($_GET['mymail_test']))
+{
+    $db_dest = array(
+	'prefix' => 'wp_',
+	'name' => 'elive',
+	'user' => 'root',
+	'host' => 'localhost',
+	'pw' => 'msiamd',
+	'label' => 'elive');
+
+    $db_source = array(
+	'prefix' => 'wp_',
+	'name' => 'elivesandbox',
+	'user' => 'root',
+	'host' => 'localhost',
+	'pw' => 'msiamd',
+	'label' => 'elivesandbox');
+
+    $mymail = new SitePushMyMail($db_dest, $db_source);
+    $mymail->myMail_get_source_DATA();
+    $mymail->myMail_get_dest_DATA();
+    $mymail->initialize();
+    exit(0);
+}
+
 class SitePushMyMail
 {
     public $subscribers = array(
@@ -16,7 +41,7 @@ class SitePushMyMail
 
     //source and destination db data
     private $db_dest;
-    private $db_soruce;
+    private $db_source;
 
     private $limits;
     private $offset;
@@ -40,26 +65,127 @@ class SitePushMyMail
 
     private $live_site_wpdb = NULL;
 
+    private $newsletter = array('source' => array(
+	'term_taxonomy_DATA' => array(),
+	'term_taxonomy_TERM_ID' => array(),
+	'terms_DATA' => array(),
+	'term_relationships_DATA' => array(),
+	'term_relationships_OBJECT_ID' => array(),
+	'posts_DATA' => array(),
+	'posts_DATA_ID' => array(),
+	'postmeta_DATA' => array(),
+	'postmeta_META_ID' => array(),
+    ));
+
     function __construct($dest, $source)
     {
+	//Create array for destination data from source.
+	$this->newsletter['dest'] = $this->newsletter['source'];
+	//Convert into an object.
+	$this->newsletter = (object) $this->newsletter;
+	$this->newsletter->source = (object) $this->newsletter->source;
+	$this->newsletter->dest = (object) $this->newsletter->dest;
+
 	$this->db_dest = $dest;
-	$this->db_soruce = $source;
+	$this->db_source = $source;
 
-	$this->live_site_wpdb = new wpdb($this->db_dest['user'], $this->db_dest['pw'], $this->db_dest['name'], $this->db_dest['host']);
-
+	//$this->live_site_wpdb = new wpdb($this->db_dest['user'], $this->db_dest['pw'], $this->db_dest['name'], $this->db_dest['host']);
 
 	$this->myMail_limits_get();
 	$this->myMail_offset_get();
 	$this->myMail_tables_get();
+	/*
 	$this->myMail_term_taxonomy_data_get();
 	$this->myMail_terms_data_get();
 	$this->myMail_term_relationships_data_get();
 	$this->myMail_posts_data_get();
 	$this->myMail_postmeta_data_get();
+     */
     }
+    public function myMail_get_source_DATA()
+    {
+	echo 'Getting Source Data'."\n";
+	global $wpdb;
+	$wpdb = new wpdb($this->db_source['user'], $this->db_source['pw'], $this->db_source['name'], $this->db_source['host']);
+	//$wpdb->select($this->db_source['name']);
+
+	$this->myMail_term_taxonomy_data_get();
+	$this->myMail_terms_data_get();
+	$this->myMail_term_relationships_data_get();
+	$this->myMail_posts_data_get();
+	$this->myMail_postmeta_data_get();
+
+	//Put in object.
+	$this->newsletter->source->term_taxonomy_DATA = $this->term_taxonomy_DATA;
+	$this->newsletter->source->term_taxonomy_TERM_ID = $this->term_taxonomy_TERM_ID;
+	$this->newsletter->source->terms_DATA = $this->terms_DATA;
+	$this->newsletter->source->term_relationships_DATA = $this->term_relationships_DATA;
+	$this->newsletter->source->term_relationships_OBJECT_ID = $this->term_relationships_OBJECT_ID;
+	$this->newsletter->source->posts_DATA = $this->posts_DATA;
+	$this->newsletter->source->posts_DATA_ID = $this->posts_DATA_ID;
+	$this->newsletter->source->postmeta_DATA = $this->postmeta_DATA;
+	$this->newsletter->source->postmeta_META_ID = $this->postmeta_META_ID;
+
+
+	//Reset private data.
+	$this->term_taxonomy_DATA = array();
+	$this->term_taxonomy_TERM_ID = array();
+	$this->terms_DATA = array();
+	$this->term_relationships_DATA = array();
+	$this->term_relationships_OBJECT_ID = array();
+	$this->posts_DATA = array();
+	$this->posts_DATA_ID = array();
+	$this->postmeta_DATA = array();
+	$this->postmeta_META_ID = array();
+	echo "\n";
+    }
+
+    public function myMail_get_dest_DATA()
+    {
+	echo 'Getting Dest Data'."\n";
+	global $wpdb;
+
+	$wpdb = new wpdb($this->db_dest['user'], $this->db_dest['pw'], $this->db_dest['name'], $this->db_dest['host']);
+	//$wpdb->select($this->db_dest['name']);
+
+	$this->myMail_term_taxonomy_data_get();
+	$this->myMail_terms_data_get();
+	$this->myMail_term_relationships_data_get();
+	$this->myMail_posts_data_get();
+	$this->myMail_postmeta_data_get();
+
+	//Put in object.
+	$this->newsletter->dest->term_taxonomy_DATA = $this->term_taxonomy_DATA;
+	$this->newsletter->dest->term_taxonomy_TERM_ID = $this->term_taxonomy_TERM_ID;
+	$this->newsletter->dest->terms_DATA = $this->terms_DATA;
+	$this->newsletter->dest->term_relationships_DATA = $this->term_relationships_DATA;
+	$this->newsletter->dest->term_relationships_OBJECT_ID = $this->term_relationships_OBJECT_ID;
+	$this->newsletter->dest->posts_DATA = $this->posts_DATA;
+	$this->newsletter->dest->posts_DATA_ID = $this->posts_DATA_ID;
+	$this->newsletter->dest->postmeta_DATA = $this->postmeta_DATA;
+	$this->newsletter->dest->postmeta_META_ID = $this->postmeta_META_ID;
+
+
+	//Reset private data.
+	$this->term_taxonomy_DATA = array();
+	$this->term_taxonomy_TERM_ID = array();
+	$this->terms_DATA = array();
+	$this->term_relationships_DATA = array();
+	$this->term_relationships_OBJECT_ID = array();
+	$this->posts_DATA = array();
+	$this->posts_DATA_ID = array();
+	$this->postmeta_DATA = array();
+	$this->postmeta_META_ID = array();
+
+	$wpdb = new wpdb($this->db_source['user'], $this->db_source['pw'], $this->db_source['name'], $this->db_source['host']);
+	echo "\n";
+    }
+
+
 
     public function initialize()
     {
+	print_r($this->newsletter);
 	//print_r($this->term_taxonomy_DATA);
 	//print_r($this->term_taxonomy_TERM_ID);
 	//print_r($this->terms_DATA);
@@ -70,15 +196,15 @@ class SitePushMyMail
 
 	//	print_r($this->db_dest);
 
-	global $wpdb;
-	$wpdb->select($this->db_dest['name']);
-	$wpdb->show_errors();
+	//global $wpdb;
+	//$wpdb->select($this->db_dest['name']);
+	//$wpdb->show_errors();
 
-	$this->myMail_posts_data_insert();
-	$this->myMail_terms_data_insert();
-	$this->myMail_term_relationships_data_insert();
+	//$this->myMail_posts_data_insert();
+	//$this->myMail_terms_data_insert();
+	//$this->myMail_term_relationships_data_insert();
 
-	$wpdb->select($this->db_soruce['name']);
+	//$wpdb->select($this->db_source['name']);
     }
 
     private function myMail_term_relationships_data_insert()
@@ -248,7 +374,7 @@ class SitePushMyMail
     private function myMail_postmeta_data_get()
     {
 	if (count($this->posts_DATA_ID) <= 0) return -1;
-	$post_id = implode(',', $this->posts_DATA_ID);
+	$post_id = implode(',', array_keys($this->posts_DATA_ID));
 	$table = $this->tables['postmeta'];
 	$sql = "SELECT * FROM `$table` WHERE post_id IN ($post_id)";
 	echo "$sql \n";
@@ -277,7 +403,7 @@ class SitePushMyMail
 	while($row = mysql_fetch_assoc($result))
 	{
 	    $this->posts_DATA[] = $row;
-	    $this->posts_DATA_ID[] = $row['ID'];
+	    $this->posts_DATA_ID[$row['ID']] = $row['post_name'];
 	}
     }
 
