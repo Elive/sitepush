@@ -215,7 +215,7 @@ class SitePushMyMail
 		echo "New Subscriber: $email\n";
 
 		$wpdb->show_errors();
-		//$wpdb->insert($wpdb->term_relationships, $this->newsletter->dest->term_relationships[$ID]);
+		$wpdb->insert($this->tables->term_relationships, $this->newsletter->dest->term_relationships[$ID]);
 
 	    }
 
@@ -243,7 +243,7 @@ class SitePushMyMail
 	global $wpdb;
 
 	$live_site_term_relationships = array();
-	$table = $this->tables['term_relationships'];
+	$table = $this->tables->term_relationships;
 
 	foreach ($this->term_relationships as $term_relationships)
 	{
@@ -285,7 +285,7 @@ class SitePushMyMail
 	global $wpdb;
 
 	$live_site_term_taxonomy = array();
-	$table = $this->tables['term_taxonomy'];
+	$table = $this->tables->term_taxonomy;
 
 	foreach ($this->term_taxonomy as $term_taxonomy)
 	{
@@ -315,7 +315,7 @@ class SitePushMyMail
 	global $wpdb;
 
 	$live_site_terms = array();
-	$table = $this->tables['terms'];
+	$table = $this->tables->terms;
 
 	foreach ($this->terms as $terms)
 	{
@@ -339,7 +339,7 @@ class SitePushMyMail
 	if (!is_array($this->posts)) return -1;
 	global $wpdb;
 
-	$table = $this->tables['postmeta'];
+	$table = $this->tables->postmeta;
 	foreach ($this->postmeta as $postmeta)
 	{
 	    if ($postmeta['post_id'] != $old_post_id) continue; //FIXME: if we want to pass back data to postmeta change this statement
@@ -367,7 +367,7 @@ class SitePushMyMail
 	global $wpdb;
 
 	$live_site_posts = array();
-	$table = $this->tables['posts'];
+	$table = $this->tables->posts;
 
 	foreach ($this->posts as $posts)
 	{
@@ -404,7 +404,7 @@ class SitePushMyMail
 	if (count($this->posts) <= 0) return -1;
 	$post_id = implode(',', array_keys($this->posts));
 
-	$table = $this->tables['postmeta'];
+	$table = $this->tables->postmeta;
 	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE post_id IN ($post_id)");
 	if (!is_array($result)) return;
 
@@ -420,7 +420,7 @@ class SitePushMyMail
     {
 	$post_id = implode(',', array_keys($this->term_relationships));
 
-	$table = $this->tables['posts'];
+	$table = $this->tables->posts;
 	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE ID IN ($post_id)");
 	if (!is_array($result)) return;
 
@@ -434,7 +434,7 @@ class SitePushMyMail
     {
 	$term_taxonomy = implode(',', array_keys($this->term_taxonomy));
 
-	$table = $this->tables['term_relationships'];
+	$table = $this->tables->term_relationships;
 	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE term_taxonomy_id IN ($term_taxonomy)");
 	if (!is_array($result)) return;
 
@@ -448,7 +448,7 @@ class SitePushMyMail
     {
 	$terms_id = implode(',', array_keys($this->term_taxonomy));
 
-	$table = $this->tables['terms'];
+	$table = $this->tables->terms;
 	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE term_id IN ($terms_id)");
 	if (!is_array($result)) return;
 
@@ -460,7 +460,7 @@ class SitePushMyMail
 
     private function myMail_term_taxonomy_get($my_wpdb)
     {
-	$table = $this->tables['term_taxonomy'];
+	$table = $this->tables->term_taxonomy;
 	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE taxonomy = 'newsletter_lists'");
 	if (!is_array($result)) return;
 
@@ -489,6 +489,7 @@ class SitePushMyMail
 	$this->tables['terms'] = $wpdb->terms;
 	$this->tables['posts'] = $wpdb->posts;
 	$this->tables['postmeta'] = $wpdb->postmeta;
+	$this->tables = (object) $this->tables;
     }
 }
 
