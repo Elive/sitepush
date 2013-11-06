@@ -89,18 +89,10 @@ class SitePushMyMail
 	$this->db_dest = $dest;
 	$this->db_source = $source;
 
-	//$this->live_site_wpdb = new wpdb($this->db_dest['user'], $this->db_dest['pw'], $this->db_dest['name'], $this->db_dest['host']);
-
+	//TODO: implement limits/offsets
 	$this->myMail_limits_get();
 	$this->myMail_offset_get();
 	$this->myMail_tables_get();
-	/*
-	$this->myMail_term_taxonomy_data_get();
-	$this->myMail_terms_data_get();
-	$this->myMail_term_relationships_data_get();
-	$this->myMail_posts_data_get();
-	$this->myMail_postmeta_data_get();
-     */
     }
     public function myMail_get_source_DATA()
     {
@@ -185,26 +177,75 @@ class SitePushMyMail
 
     public function initialize()
     {
+	//List all posts ids
+	foreach ($this->newsletter->dest->posts_DATA_ID as $ID => $post_name)
+	{
+	    //Check if post_name is 32 char long.MD5SUM
+	    if (strlen($post_name) != 32) continue;
+	    //Check if post_name's title is an email [post_title]
+	    if (!is_email($this->newsletter->dest->posts_DATA[$ID]->post_title)) continue;
+
+	    //Check if source database has this post_name.
+	    if ($source_id = self::myMail_posts_DATA_ID_has_POST_NAME($this->newsletter->source->posts_DATA_ID, $post_name))
+	    {
+		$email = $this->newsletter->dest->posts_DATA[$ID]->post_title;
+		echo "Old Subscriber: $email";
+
+		//Check if old subscriber post_DATA has changed.
+		if ($this->newsletter->source->posts_DATA[$source_id] ==
+		    $this->newsletter->dest->posts_DATA[$ID])
+		{
+		    echo " has not been modified\n";
+		    //TODO: Check if lists changed.
+		}
+		else
+		{
+		    echo " has been modified";
+		    //Check is the ID has changed.
+		    if ($ID == $source_id)
+		    {
+			echo ", still using the same ID";
+
+			//Check if lists changed.
+			if ($this->newsletter->dest->term_relationships_DATA[$ID] ==
+			    $this->newsletter->source->term_relationships_DATA[$ID])
+			{
+			    echo ", relationships are still the same\n";
+			}
+			else
+			{
+			    echo ", relationships has changed\n";
+			}
+
+			//Check if postmeta has changed.
+			//if ($this->newsletter->dest->
+		    }
+		    else
+		    {
+			echo ", it seems the posts ID has changed, (this is not normal)\n";
+		    }
+		}
+	    }
+	    else
+	    {
+		$email = $this->newsletter->dest->posts_DATA[$ID]->post_title;
+		echo "New Subscriber: $email\n";
+	    }
+
+	}
 	print_r($this->newsletter);
-	//print_r($this->term_taxonomy_DATA);
-	//print_r($this->term_taxonomy_TERM_ID);
-	//print_r($this->terms_DATA);
-	//print_r($this->term_relationships_DATA);
-	//print_r($this->term_relationships_OBJECT_ID);
-	//print_r($this->posts_DATA);
-	//print_r($this->postmeta_DATA);
+    }
 
-	//	print_r($this->db_dest);
+    private static function myMail_posts_DATA_ID_has_POST_NAME($DATA, $post_name)
+    {
+	if (!is_array($DATA)) return; //Data must posts_DATA_ID
+	if (strlen($post_name) != 32) return; //post_name must be an MD5SUM 
 
-	//global $wpdb;
-	//$wpdb->select($this->db_dest['name']);
-	//$wpdb->show_errors();
-
-	//$this->myMail_posts_data_insert();
-	//$this->myMail_terms_data_insert();
-	//$this->myMail_term_relationships_data_insert();
-
-	//$wpdb->select($this->db_source['name']);
+	foreach ($DATA as $key => $_post_name)
+	{
+	    if ($_post_name == $post_name) return $key;
+	}
+	return FALSE;
     }
 
     private function myMail_term_relationships_data_insert()
@@ -384,8 +425,8 @@ class SitePushMyMail
 
 	while($row = mysql_fetch_assoc($result))
 	{
-	    $this->postmeta_DATA[] = $row;
-	    $this->postmeta_META_ID[] = $row['meta_id'];
+	    $this->postmeta_DATA[$row['post_id']][$row['meta_id']] = (object) $row;
+	    $this->postmeta_META_ID[$row['post_id']][] = $row['meta_id'];
 	}
     }
 
@@ -402,7 +443,7 @@ class SitePushMyMail
 
 	while($row = mysql_fetch_assoc($result))
 	{
-	    $this->posts_DATA[] = $row;
+	    $this->posts_DATA[$row['ID']] = (object) $row;
 	    $this->posts_DATA_ID[$row['ID']] = $row['post_name'];
 	}
     }
@@ -420,8 +461,8 @@ class SitePushMyMail
 
 	while($row = mysql_fetch_assoc($result))
 	{
-	    $this->term_relationships_DATA[] = $row;
-	    $this->term_relationships_OBJECT_ID[] = $row['object_id'];
+	    $this->term_relationships_DATA[$row['object_id']][$row['term_taxonomy_id']] = (object) $row;
+	    $this->term_relationships_OBJECT_ID[$row['object_id']] = $row['object_id'];
 	}
     }
 
@@ -438,7 +479,7 @@ class SitePushMyMail
 
 	while($row = mysql_fetch_assoc($result))
 	{
-	    $this->terms_DATA[] = $row;
+	    $this->terms_DATA[$row['term_id']] = (object) $row;
 	}
     }
 
@@ -454,8 +495,8 @@ class SitePushMyMail
 
 	while($row = mysql_fetch_assoc($result))
 	{
-	    $this->term_taxonomy_DATA[] = $row;
-	    $this->term_taxonomy_TERM_ID[] = $row['term_id'];
+	    $this->term_taxonomy_DATA[$row['term_taxonomy_id']] = (object) $row;
+	    $this->term_taxonomy_TERM_ID[$row['term_taxonomy_id']] = $row['term_id'];
 	}
     }
 
