@@ -98,14 +98,12 @@ class SitePushMyMail
     {
 	echo 'Getting Source Data'."\n";
 	global $wpdb;
-	$wpdb = new wpdb($this->db_source['user'], $this->db_source['pw'], $this->db_source['name'], $this->db_source['host']);
-	//$wpdb->select($this->db_source['name']);
 
-	$this->myMail_term_taxonomy_data_get();
-	$this->myMail_terms_data_get();
-	$this->myMail_term_relationships_data_get();
-	$this->myMail_posts_data_get();
-	$this->myMail_postmeta_data_get();
+	$this->myMail_term_taxonomy_data_get($wpdb);
+	$this->myMail_terms_data_get($wpdb);
+	$this->myMail_term_relationships_data_get($wpdb);
+	$this->myMail_posts_data_get($wpdb);
+	$this->myMail_postmeta_data_get($wpdb);
 
 	//Put in object.
 	$this->newsletter->source->term_taxonomy_DATA = $this->term_taxonomy_DATA;
@@ -129,22 +127,24 @@ class SitePushMyMail
 	$this->posts_DATA_ID = array();
 	$this->postmeta_DATA = array();
 	$this->postmeta_META_ID = array();
+
+	print_r($this->newsletter->source);
 	echo "\n";
     }
 
     public function myMail_get_dest_DATA()
     {
 	echo 'Getting Dest Data'."\n";
-	global $wpdb;
 
-	$wpdb = new wpdb($this->db_dest['user'], $this->db_dest['pw'], $this->db_dest['name'], $this->db_dest['host']);
-	//$wpdb->select($this->db_dest['name']);
+	//Connect to Dest database
+	$wpdb_dest = new wpdb($this->db_dest['user'], $this->db_dest['pw'], $this->db_dest['name'], $this->db_dest['host']);
 
-	$this->myMail_term_taxonomy_data_get();
-	$this->myMail_terms_data_get();
-	$this->myMail_term_relationships_data_get();
-	$this->myMail_posts_data_get();
-	$this->myMail_postmeta_data_get();
+	//Get Data from database
+	$this->myMail_term_taxonomy_data_get($wpdb_dest);
+	$this->myMail_terms_data_get($wpdb_dest);
+	$this->myMail_term_relationships_data_get($wpdb_dest);
+	$this->myMail_posts_data_get($wpdb_dest);
+	$this->myMail_postmeta_data_get($wpdb_dest);
 
 	//Put in object.
 	$this->newsletter->dest->term_taxonomy_DATA = $this->term_taxonomy_DATA;
@@ -169,7 +169,7 @@ class SitePushMyMail
 	$this->postmeta_DATA = array();
 	$this->postmeta_META_ID = array();
 
-	$wpdb = new wpdb($this->db_source['user'], $this->db_source['pw'], $this->db_source['name'], $this->db_source['host']);
+	print_r($this->newsletter->dest);
 	echo "\n";
     }
 
@@ -177,6 +177,7 @@ class SitePushMyMail
 
     public function initialize()
     {
+	global $wpdb;
 	//List all posts ids
 	foreach ($this->newsletter->dest->posts_DATA_ID as $ID => $post_name)
 	{
@@ -238,10 +239,14 @@ class SitePushMyMail
 	    {
 		$email = $this->newsletter->dest->posts_DATA[$ID]->post_title;
 		echo "New Subscriber: $email\n";
+
+		$wpdb->show_errors();
+		$wpdb->insert($wpdb->term_relationships, $this->newsletter->dest->term_relationships_DATA[$ID]);
+
 	    }
 
 	}
-	print_r($this->newsletter);
+	//print_r($this->newsletter);
     }
 
     private static function myMail_posts_DATA_ID_has_POST_NAME($DATA, $post_name)
@@ -420,93 +425,79 @@ class SitePushMyMail
 	}
     }
 
-    private function myMail_postmeta_data_get()
+    private function myMail_postmeta_data_get($my_wpdb)
     {
 	if (count($this->posts_DATA_ID) <= 0) return -1;
 	$post_id = implode(',', array_keys($this->posts_DATA_ID));
+
 	$table = $this->tables['postmeta'];
-	$sql = "SELECT * FROM `$table` WHERE post_id IN ($post_id)";
-	echo "$sql \n";
-	$result = mysql_query($sql);
+	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE post_id IN ($post_id)");
+	if (!is_array($result)) return;
 
-	if (mysql_num_rows($result) <= 0) return;
-
-	while($row = mysql_fetch_assoc($result))
+	foreach ($result as $data)
 	{
-	    if (strpos($row['meta_key'], '_edit_') !== FALSE) continue;
+	    if (strpos($data->meta_key, '_edit_') !== FALSE) continue;
 
-	    $this->postmeta_DATA[$row['post_id']][$row['meta_id']] = (object) $row;
-	    $this->postmeta_META_ID[$row['post_id']][] = $row['meta_id'];
+	    $this->postmeta_DATA[$data->post_id][$data->meta_id] = $data;
+	    $this->postmeta_META_ID[$data->post_id][] = $data->meta_id;
 	}
     }
 
-
-    private function myMail_posts_data_get()
+    private function myMail_posts_data_get($my_wpdb)
     {
 	if (count($this->term_relationships_OBJECT_ID) <= 0) return -1;
 	$post_id = implode(',', $this->term_relationships_OBJECT_ID);
+
 	$table = $this->tables['posts'];
-	$sql = "SELECT * FROM `$table` WHERE ID IN ($post_id)";
-	echo "$sql \n";
-	$result = mysql_query($sql);
-	if (mysql_num_rows($result) <= 0) return;
+	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE ID IN ($post_id)");
+	if (!is_array($result)) return;
 
-	while($row = mysql_fetch_assoc($result))
+	foreach ($result as $data)
 	{
-	    $this->posts_DATA[$row['ID']] = (object) $row;
-	    $this->posts_DATA_ID[$row['ID']] = $row['post_name'];
+	    $this->posts_DATA[$data->ID] = $data;
+	    $this->posts_DATA_ID[$data->ID] = $data->ID;
 	}
     }
 
-
-    private function myMail_term_relationships_data_get()
+    private function myMail_term_relationships_data_get($my_wpdb)
     {
-	$term_taxonomy = implode(',', $this->term_taxonomy_TERM_ID);
+	$term_taxonomy = implode(',', array_keys($this->term_taxonomy_DATA));
+
 	$table = $this->tables['term_relationships'];
-	$sql = "SELECT * FROM `$table` WHERE term_taxonomy_id IN ($term_taxonomy)";
-	echo "$sql \n";
-	$result = mysql_query($sql);
+	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE term_taxonomy_id IN ($term_taxonomy)");
+	if (!is_array($result)) return;
 
-	if (mysql_num_rows($result) <= 0) return;
-
-	while($row = mysql_fetch_assoc($result))
+	foreach ($result as $data)
 	{
-	    $this->term_relationships_DATA[$row['object_id']][$row['term_taxonomy_id']] = (object) $row;
-	    $this->term_relationships_OBJECT_ID[$row['object_id']] = $row['object_id'];
+	    $this->term_relationships_DATA[$data->object_id][$data->term_taxonomy_id] = $data;
+	    $this->term_relationships_OBJECT_ID[$data->object_id] = $data->object_id;
 	}
     }
 
-
-    private function myMail_terms_data_get()
+    private function myMail_terms_data_get($my_wpdb)
     {
-	$terms_id = implode(',', $this->term_taxonomy_TERM_ID);
+	$terms_id = implode(',', array_keys($this->term_taxonomy_DATA));
+
 	$table = $this->tables['terms'];
-	$sql = "SELECT * FROM `$table` WHERE term_id IN ($terms_id)";
-	echo "$sql \n";
-	$result = mysql_query($sql);
+	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE term_id IN ($terms_id)");
+	if (!is_array($result)) return;
 
-	if (mysql_num_rows($result) <= 0) return;
-
-	while($row = mysql_fetch_assoc($result))
+	foreach ($result as $data)
 	{
-	    $this->terms_DATA[$row['term_id']] = (object) $row;
+	    $this->terms_DATA[$data->term_id] = $data;
 	}
     }
 
-
-    private function myMail_term_taxonomy_data_get()
+    private function myMail_term_taxonomy_data_get($my_wpdb)
     {
 	$table = $this->tables['term_taxonomy'];
-	$sql = "SELECT * FROM `$table` WHERE taxonomy = 'newsletter_lists'";
-	echo "$sql \n";
-	$result = mysql_query($sql);
+	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE taxonomy = 'newsletter_lists'");
+	if (!is_array($result)) return;
 
-	if (mysql_num_rows($result) <= 0) return;
-
-	while($row = mysql_fetch_assoc($result))
+	foreach ($result as $data)
 	{
-	    $this->term_taxonomy_DATA[$row['term_taxonomy_id']] = (object) $row;
-	    $this->term_taxonomy_TERM_ID[$row['term_taxonomy_id']] = $row['term_id'];
+	    $this->term_taxonomy_DATA[$data->term_taxonomy_id] = $data;
+	    $this->term_taxonomy_TERM_ID[$data->term_taxonomy_id] = $data->term_id;
 	}
     }
 
@@ -521,58 +512,14 @@ class SitePushMyMail
 	$this->offset = 0; //FIXME: calc the offsets;
     }
 
-
-    private function dest_sql_connect($username, $password, $host)
-    {
-	$conn = mysql_connect($host, $username, $password) or
-	    $this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
-	return $conn;
-    }
-
-    private function dest_sql_connection_get()
-    {
-	$db_dest = $this->db_dest;
-
-	$conn = $this->dest_sql_connect($db_dest['user'], $db_dest['pw'], $db_dest['host']);
-	mysql_select_db($db_dest['name'], $conn);
-	if (!$conn)
-	{
-	    $this->add_result("SQL_Debug: Line:".__LINE__." :: MySQL Error:".mysql_error());
-	    return FALSE;
-	}
-	return $conn;
-    }
-
-    private function dest_sql_tables_get()
-    {
-	$db_dest = $this->db_dest;
-	$sql = "SHOW TABLES FROM $db_dest[name]";
-
-	$result = mysql_query($sql);
-
-	$retval = array();
-	while ($row = mysql_fetch_row($result)) {
-	    $retval[] = $row[0];
-	}
-	return $retval;
-    }
-
     private function myMail_tables_get()
     {
-	$this->dest_sql_connection_get();
-	foreach ($this->dest_sql_tables_get() as $tables)
-	{
-	    if (strpos($tables, '_term_taxonomy') !== FALSE)
-		$this->tables['term_taxonomy'] = $tables;
-	    if (strpos($tables, '_term_relationships') !== FALSE)
-		$this->tables['term_relationships'] = $tables;
-	    if (strpos($tables, '_terms') !== FALSE)
-		$this->tables['terms'] = $tables;
-	    if (strpos($tables, '_posts') !== FALSE)
-		$this->tables['posts'] = $tables;
-	    if (strpos($tables, '_postmeta') !== FALSE)
-		$this->tables['postmeta'] = $tables;
-	}
+	global $wpdb;
+	$this->tables['term_taxonomy'] = $wpdb->term_taxonomy;
+	$this->tables['term_relationships'] = $wpdb->term_relationships;
+	$this->tables['terms'] = $wpdb->terms;
+	$this->tables['posts'] = $wpdb->posts;
+	$this->tables['postmeta'] = $wpdb->postmeta;
     }
 }
 
