@@ -46,8 +46,6 @@ class SitePushMyMail
     private $limits;
     private $offset;
 
-    private $tables = array();
-
     //*_term_taxonomy data form live site stored here
     private $term_taxonomy = array();
 
@@ -84,7 +82,6 @@ class SitePushMyMail
 	//TODO: implement limits/offsets
 	$this->myMail_limits_get();
 	$this->myMail_offset_get();
-	$this->myMail_tables_get();
     }
     public function myMail_get_source()
     {
@@ -215,8 +212,17 @@ class SitePushMyMail
 		echo "New Subscriber: $email\n";
 
 		$wpdb->show_errors();
-		$wpdb->insert($this->tables->term_relationships, $this->newsletter->dest->term_relationships[$ID]);
+		$wpdb->insert($wpdb->posts, (array) $this->newsletter->dest->posts[$ID]);
 
+		foreach ($this->newsletter->dest->postmeta[$ID] as $meta_id => $postmeta)
+		{
+		    $wpdb->insert($wpdb->postmeta, (array) $postmeta);
+		}
+
+		foreach ($this->newsletter->dest->term_relationships[$ID] as $object_id => $term_relationships)
+		{
+		    $wpdb->insert($wpdb->term_relationships, (array) $term_relationships);
+		}
 	    }
 
 	}
@@ -235,6 +241,9 @@ class SitePushMyMail
 	return FALSE;
     }
 
+    //FIXME Fix all _insert functions
+    //FIXME Fix all _insert functions
+    //FIXME Fix all _insert functions
     private function myMail_term_relationships_insert()
     {
 	if (!is_array($this->term_taxonomy)) return -1;
@@ -401,11 +410,12 @@ class SitePushMyMail
 
     private function myMail_postmeta_get($my_wpdb)
     {
+	global $wpdb;
 	if (count($this->posts) <= 0) return -1;
 	$post_id = implode(',', array_keys($this->posts));
 
-	$table = $this->tables->postmeta;
-	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE post_id IN ($post_id)");
+	$result = $my_wpdb->get_results("SELECT * FROM `$wpdb->postmeta` WHERE post_id IN ($post_id)");
+	echo $my_wpdb->last_query."\n";
 	if (!is_array($result)) return;
 
 	foreach ($result as $data)
@@ -418,10 +428,11 @@ class SitePushMyMail
 
     private function myMail_posts_get($my_wpdb)
     {
+	global $wpdb;
 	$post_id = implode(',', array_keys($this->term_relationships));
 
-	$table = $this->tables->posts;
-	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE ID IN ($post_id)");
+	$result = $my_wpdb->get_results("SELECT * FROM `$wpdb->posts` WHERE ID IN ($post_id)");
+	echo $my_wpdb->last_query."\n";
 	if (!is_array($result)) return;
 
 	foreach ($result as $data)
@@ -432,10 +443,11 @@ class SitePushMyMail
 
     private function myMail_term_relationships_get($my_wpdb)
     {
+	global $wpdb;
 	$term_taxonomy = implode(',', array_keys($this->term_taxonomy));
 
-	$table = $this->tables->term_relationships;
-	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE term_taxonomy_id IN ($term_taxonomy)");
+	$result = $my_wpdb->get_results("SELECT * FROM `$wpdb->term_relationships` WHERE term_taxonomy_id IN ($term_taxonomy)");
+	echo $my_wpdb->last_query."\n";
 	if (!is_array($result)) return;
 
 	foreach ($result as $data)
@@ -446,10 +458,11 @@ class SitePushMyMail
 
     private function myMail_terms_get($my_wpdb)
     {
+	global $wpdb;
 	$terms_id = implode(',', array_keys($this->term_taxonomy));
 
-	$table = $this->tables->terms;
-	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE term_id IN ($terms_id)");
+	$result = $my_wpdb->get_results("SELECT * FROM `$wpdb->terms` WHERE term_id IN ($terms_id)");
+	echo $my_wpdb->last_query."\n";
 	if (!is_array($result)) return;
 
 	foreach ($result as $data)
@@ -460,8 +473,9 @@ class SitePushMyMail
 
     private function myMail_term_taxonomy_get($my_wpdb)
     {
-	$table = $this->tables->term_taxonomy;
-	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE taxonomy = 'newsletter_lists'");
+	global $wpdb;
+	$result = $my_wpdb->get_results("SELECT * FROM `$wpdb->term_taxonomy` WHERE taxonomy = 'newsletter_lists'");
+	echo $my_wpdb->last_query."\n";
 	if (!is_array($result)) return;
 
 	foreach ($result as $data)
@@ -479,17 +493,6 @@ class SitePushMyMail
     private function myMail_offset_get()
     {
 	$this->offset = 0; //FIXME: calc the offsets;
-    }
-
-    private function myMail_tables_get()
-    {
-	global $wpdb;
-	$this->tables['term_taxonomy'] = $wpdb->term_taxonomy;
-	$this->tables['term_relationships'] = $wpdb->term_relationships;
-	$this->tables['terms'] = $wpdb->terms;
-	$this->tables['posts'] = $wpdb->posts;
-	$this->tables['postmeta'] = $wpdb->postmeta;
-	$this->tables = (object) $this->tables;
     }
 }
 
