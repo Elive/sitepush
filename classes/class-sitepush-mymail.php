@@ -22,8 +22,8 @@ if (isset($_GET['mymail_test']))
 	'label' => 'elivesandbox');
 
     $mymail = new SitePushMyMail($db_dest, $db_source);
-    $mymail->myMail_get_source_DATA();
-    $mymail->myMail_get_dest_DATA();
+    $mymail->myMail_get_source();
+    $mymail->myMail_get_dest();
     $mymail->initialize();
     exit(0);
 }
@@ -49,32 +49,24 @@ class SitePushMyMail
     private $tables = array();
 
     //*_term_taxonomy data form live site stored here
-    private $term_taxonomy_DATA = array();
-    private $term_taxonomy_TERM_ID = array();
+    private $term_taxonomy = array();
 
-    private $terms_DATA = array();
+    private $terms = array();
 
-    private $term_relationships_DATA = array();
-    private $term_relationships_OBJECT_ID = array();
+    private $term_relationships = array();
 
-    private $posts_DATA = array();
-    private $posts_DATA_ID = array();
+    private $posts = array();
 
-    private $postmeta_DATA = array();
-    private $postmeta_META_ID = array();
+    private $postmeta = array();
 
     private $live_site_wpdb = NULL;
 
     private $newsletter = array('source' => array(
-	'term_taxonomy_DATA' => array(),
-	'term_taxonomy_TERM_ID' => array(),
-	'terms_DATA' => array(),
-	'term_relationships_DATA' => array(),
-	'term_relationships_OBJECT_ID' => array(),
-	'posts_DATA' => array(),
-	'posts_DATA_ID' => array(),
-	'postmeta_DATA' => array(),
-	'postmeta_META_ID' => array(),
+	'term_taxonomy' => array(),
+	'terms' => array(),
+	'term_relationships' => array(),
+	'posts' => array(),
+	'postmeta' => array(),
     ));
 
     function __construct($dest, $source)
@@ -94,45 +86,36 @@ class SitePushMyMail
 	$this->myMail_offset_get();
 	$this->myMail_tables_get();
     }
-    public function myMail_get_source_DATA()
+    public function myMail_get_source()
     {
 	echo 'Getting Source Data'."\n";
 	global $wpdb;
 
-	$this->myMail_term_taxonomy_data_get($wpdb);
-	$this->myMail_terms_data_get($wpdb);
-	$this->myMail_term_relationships_data_get($wpdb);
-	$this->myMail_posts_data_get($wpdb);
-	$this->myMail_postmeta_data_get($wpdb);
+	$this->myMail_term_taxonomy_get($wpdb);
+	$this->myMail_terms_get($wpdb);
+	$this->myMail_term_relationships_get($wpdb);
+	$this->myMail_posts_get($wpdb);
+	$this->myMail_postmeta_get($wpdb);
 
 	//Put in object.
-	$this->newsletter->source->term_taxonomy_DATA = $this->term_taxonomy_DATA;
-	$this->newsletter->source->term_taxonomy_TERM_ID = $this->term_taxonomy_TERM_ID;
-	$this->newsletter->source->terms_DATA = $this->terms_DATA;
-	$this->newsletter->source->term_relationships_DATA = $this->term_relationships_DATA;
-	$this->newsletter->source->term_relationships_OBJECT_ID = $this->term_relationships_OBJECT_ID;
-	$this->newsletter->source->posts_DATA = $this->posts_DATA;
-	$this->newsletter->source->posts_DATA_ID = $this->posts_DATA_ID;
-	$this->newsletter->source->postmeta_DATA = $this->postmeta_DATA;
-	$this->newsletter->source->postmeta_META_ID = $this->postmeta_META_ID;
+	$this->newsletter->source->term_taxonomy = $this->term_taxonomy;
+	$this->newsletter->source->terms = $this->terms;
+	$this->newsletter->source->term_relationships = $this->term_relationships;
+	$this->newsletter->source->posts = $this->posts;
+	$this->newsletter->source->postmeta = $this->postmeta;
 
 
 	//Reset private data.
-	$this->term_taxonomy_DATA = array();
-	$this->term_taxonomy_TERM_ID = array();
-	$this->terms_DATA = array();
-	$this->term_relationships_DATA = array();
-	$this->term_relationships_OBJECT_ID = array();
-	$this->posts_DATA = array();
-	$this->posts_DATA_ID = array();
-	$this->postmeta_DATA = array();
-	$this->postmeta_META_ID = array();
+	$this->term_taxonomy = array();
+	$this->terms = array();
+	$this->term_relationships = array();
+	$this->posts = array();
+	$this->postmeta = array();
 
-	print_r($this->newsletter->source);
-	echo "\n";
+	//print_r($this->newsletter->source);
     }
 
-    public function myMail_get_dest_DATA()
+    public function myMail_get_dest()
     {
 	echo 'Getting Dest Data'."\n";
 
@@ -140,37 +123,28 @@ class SitePushMyMail
 	$wpdb_dest = new wpdb($this->db_dest['user'], $this->db_dest['pw'], $this->db_dest['name'], $this->db_dest['host']);
 
 	//Get Data from database
-	$this->myMail_term_taxonomy_data_get($wpdb_dest);
-	$this->myMail_terms_data_get($wpdb_dest);
-	$this->myMail_term_relationships_data_get($wpdb_dest);
-	$this->myMail_posts_data_get($wpdb_dest);
-	$this->myMail_postmeta_data_get($wpdb_dest);
+	$this->myMail_term_taxonomy_get($wpdb_dest);
+	$this->myMail_terms_get($wpdb_dest);
+	$this->myMail_term_relationships_get($wpdb_dest);
+	$this->myMail_posts_get($wpdb_dest);
+	$this->myMail_postmeta_get($wpdb_dest);
 
 	//Put in object.
-	$this->newsletter->dest->term_taxonomy_DATA = $this->term_taxonomy_DATA;
-	$this->newsletter->dest->term_taxonomy_TERM_ID = $this->term_taxonomy_TERM_ID;
-	$this->newsletter->dest->terms_DATA = $this->terms_DATA;
-	$this->newsletter->dest->term_relationships_DATA = $this->term_relationships_DATA;
-	$this->newsletter->dest->term_relationships_OBJECT_ID = $this->term_relationships_OBJECT_ID;
-	$this->newsletter->dest->posts_DATA = $this->posts_DATA;
-	$this->newsletter->dest->posts_DATA_ID = $this->posts_DATA_ID;
-	$this->newsletter->dest->postmeta_DATA = $this->postmeta_DATA;
-	$this->newsletter->dest->postmeta_META_ID = $this->postmeta_META_ID;
+	$this->newsletter->dest->term_taxonomy = $this->term_taxonomy;
+	$this->newsletter->dest->terms = $this->terms;
+	$this->newsletter->dest->term_relationships = $this->term_relationships;
+	$this->newsletter->dest->posts = $this->posts;
+	$this->newsletter->dest->postmeta = $this->postmeta;
 
 
 	//Reset private data.
-	$this->term_taxonomy_DATA = array();
-	$this->term_taxonomy_TERM_ID = array();
-	$this->terms_DATA = array();
-	$this->term_relationships_DATA = array();
-	$this->term_relationships_OBJECT_ID = array();
-	$this->posts_DATA = array();
-	$this->posts_DATA_ID = array();
-	$this->postmeta_DATA = array();
-	$this->postmeta_META_ID = array();
+	$this->term_taxonomy = array();
+	$this->terms = array();
+	$this->term_relationships = array();
+	$this->posts = array();
+	$this->postmeta = array();
 
-	print_r($this->newsletter->dest);
-	echo "\n";
+	//print_r($this->newsletter->dest);
     }
 
 
@@ -179,22 +153,22 @@ class SitePushMyMail
     {
 	global $wpdb;
 	//List all posts ids
-	foreach ($this->newsletter->dest->posts_DATA_ID as $ID => $post_name)
+	foreach ($this->newsletter->dest->posts as $ID => $post)
 	{
 	    //Check if post_name is 32 char long.MD5SUM
-	    if (strlen($post_name) != 32) continue;
+	    if (strlen($post->post_name) != 32) continue;
 	    //Check if post_name's title is an email [post_title]
-	    if (!is_email($this->newsletter->dest->posts_DATA[$ID]->post_title)) continue;
+	    if (!is_email($this->newsletter->dest->posts[$ID]->post_title)) continue;
 
 	    //Check if source database has this post_name.
-	    if ($source_id = self::myMail_posts_DATA_ID_has_POST_NAME($this->newsletter->source->posts_DATA_ID, $post_name))
+	    if ($source_id = self::myMail_posts_has_POST_NAME($this->newsletter->source->posts, $post->post_name))
 	    {
-		$email = $this->newsletter->dest->posts_DATA[$ID]->post_title;
+		$email = $this->newsletter->dest->posts[$ID]->post_title;
 		echo "Old Subscriber: $email";
 
-		//Check if old subscriber post_DATA has changed.
-		if ($this->newsletter->source->posts_DATA[$source_id] ==
-		    $this->newsletter->dest->posts_DATA[$ID])
+		//Check if old subscriber post has changed.
+		if ($this->newsletter->source->posts[$source_id] ==
+		    $this->newsletter->dest->posts[$ID])
 		{
 		    echo " has not been modified\n";
 		    //TODO: Check if lists changed.
@@ -208,8 +182,8 @@ class SitePushMyMail
 			echo ", still using the same ID";
 
 			//Check if lists changed.
-			if ($this->newsletter->dest->term_relationships_DATA[$ID] ==
-			    $this->newsletter->source->term_relationships_DATA[$ID])
+			if ($this->newsletter->dest->term_relationships[$ID] ==
+			    $this->newsletter->source->term_relationships[$ID])
 			{
 			    echo ", relationships are still the same";
 			}
@@ -219,8 +193,8 @@ class SitePushMyMail
 			}
 
 			//Check if postmeta has changed.
-			if ($this->newsletter->dest->postmeta_DATA[$ID] ==
-			    $this->newsletter->source->postmeta_DATA[$ID])
+			if ($this->newsletter->dest->postmeta[$ID] ==
+			    $this->newsletter->source->postmeta[$ID])
 			{
 			    echo ", postmeta are still the same \n";
 			}
@@ -237,46 +211,46 @@ class SitePushMyMail
 	    }
 	    else
 	    {
-		$email = $this->newsletter->dest->posts_DATA[$ID]->post_title;
+		$email = $this->newsletter->dest->posts[$ID]->post_title;
 		echo "New Subscriber: $email\n";
 
 		$wpdb->show_errors();
-		$wpdb->insert($wpdb->term_relationships, $this->newsletter->dest->term_relationships_DATA[$ID]);
+		//$wpdb->insert($wpdb->term_relationships, $this->newsletter->dest->term_relationships[$ID]);
 
 	    }
 
 	}
-	//print_r($this->newsletter);
+	print_r($this->newsletter);
     }
 
-    private static function myMail_posts_DATA_ID_has_POST_NAME($DATA, $post_name)
+    private static function myMail_posts_has_POST_NAME($DATA, $post_name)
     {
-	if (!is_array($DATA)) return; //Data must posts_DATA_ID
+	if (!is_array($DATA)) return; //Data must posts
 	if (strlen($post_name) != 32) return; //post_name must be an MD5SUM 
 
-	foreach ($DATA as $key => $_post_name)
+	foreach ($DATA as $key => $post)
 	{
-	    if ($_post_name == $post_name) return $key;
+	    if ($post->post_name == $post_name) return $key;
 	}
 	return FALSE;
     }
 
-    private function myMail_term_relationships_data_insert()
+    private function myMail_term_relationships_insert()
     {
-	if (!is_array($this->term_taxonomy_DATA)) return -1;
-	if (!is_array($this->posts_DATA)) return -1;
-	if (!is_array($this->term_relationships_DATA)) return -1;
+	if (!is_array($this->term_taxonomy)) return -1;
+	if (!is_array($this->posts)) return -1;
+	if (!is_array($this->term_relationships)) return -1;
 	global $wpdb;
 
-	$live_site_term_relationships_DATA = array();
+	$live_site_term_relationships = array();
 	$table = $this->tables['term_relationships'];
 
-	foreach ($this->term_relationships_DATA as $term_relationships)
+	foreach ($this->term_relationships as $term_relationships)
 	{
 	    $object_id = $term_relationships['object_id'];
 	    $term_taxonomy_id = $term_relationships['term_taxonomy_id'];
 
-	    foreach ($this->term_taxonomy_DATA as $term_taxonomy)
+	    foreach ($this->term_taxonomy as $term_taxonomy)
 	    {
 		if ($term_relationships['term_taxonomy_id'] != $term_taxonomy['term_taxonomy_id']) continue;
 
@@ -286,7 +260,7 @@ class SitePushMyMail
 		break;
 	    }
 
-	    foreach ($this->posts_DATA as $posts)
+	    foreach ($this->posts as $posts)
 	    {
 		if ($term_relationships['object_id'] != $posts['ID']) continue;
 
@@ -304,16 +278,16 @@ class SitePushMyMail
 	}
     }
 
-    private function myMail_term_taxonomy_data_insert($old_term_id, $new_term_id)
+    private function myMail_term_taxonomy_insert($old_term_id, $new_term_id)
     {
-	if (!is_array($this->terms_DATA)) return -1;
-	if (!is_array($this->term_taxonomy_DATA)) return -1;
+	if (!is_array($this->terms)) return -1;
+	if (!is_array($this->term_taxonomy)) return -1;
 	global $wpdb;
 
-	$live_site_term_taxonomy_DATA = array();
+	$live_site_term_taxonomy = array();
 	$table = $this->tables['term_taxonomy'];
 
-	foreach ($this->term_taxonomy_DATA as $term_taxonomy)
+	foreach ($this->term_taxonomy as $term_taxonomy)
 	{
 	    if ($term_taxonomy['term_id'] == $old_term_id)
 	    {
@@ -330,20 +304,20 @@ class SitePushMyMail
 		echo "Inserting $table.term_taxonomy_id:$new_term_taxonomy_id\n";
 		$term_taxonomy['term_taxonomy_id'] = $old_term_taxonomy_id;
 	    }
-	    $live_site_term_taxonomy_DATA[] = $term_taxonomy;
+	    $live_site_term_taxonomy[] = $term_taxonomy;
 	}
-	$this->term_taxonomy_DATA = $live_site_term_taxonomy_DATA;
+	$this->term_taxonomy = $live_site_term_taxonomy;
     }
 
-    private function myMail_terms_data_insert()
+    private function myMail_terms_insert()
     {
-	if (!is_array($this->terms_DATA)) return -1;
+	if (!is_array($this->terms)) return -1;
 	global $wpdb;
 
-	$live_site_terms_DATA = array();
+	$live_site_terms = array();
 	$table = $this->tables['terms'];
 
-	foreach ($this->terms_DATA as $terms)
+	foreach ($this->terms as $terms)
 	{
 	    $old_terms_id = $new_terms_id = $terms['term_id'];
 	    $terms['term_id'] = '';
@@ -353,22 +327,22 @@ class SitePushMyMail
 		$terms['term_id_NEW'] = $new_terms_id = $wpdb->insert_id;
 
 	    echo "Inserting $table.term_id:$new_terms_id\n";
-	    $this->myMail_term_taxonomy_data_insert($old_terms_id, $new_terms_id);
-	    $live_site_terms_DATA[] = $terms;
+	    $this->myMail_term_taxonomy_insert($old_terms_id, $new_terms_id);
+	    $live_site_terms[] = $terms;
 	}
-	$this->terms_DATA = $live_site_terms_DATA;
+	$this->terms = $live_site_terms;
     }
 
-    private function myMail_postmeta_data_insert($old_post_id, $new_post_id)
+    private function myMail_postmeta_insert($old_post_id, $new_post_id)
     {
-	if (!is_array($this->postmeta_DATA)) return -1;
-	if (!is_array($this->posts_DATA)) return -1;
+	if (!is_array($this->postmeta)) return -1;
+	if (!is_array($this->posts)) return -1;
 	global $wpdb;
 
 	$table = $this->tables['postmeta'];
-	foreach ($this->postmeta_DATA as $postmeta)
+	foreach ($this->postmeta as $postmeta)
 	{
-	    if ($postmeta['post_id'] != $old_post_id) continue; //FIXME: if we want to pass back data to postmeta_DATA change this statement
+	    if ($postmeta['post_id'] != $old_post_id) continue; //FIXME: if we want to pass back data to postmeta change this statement
 
 	    $old_meta_id = $new_meta_id = $postmeta['meta_id'];
 	    $postmeta['meta_id'] = '';
@@ -387,15 +361,15 @@ class SitePushMyMail
     }
 
 
-    private function myMail_posts_data_insert()
+    private function myMail_posts_insert()
     {
-	if (!is_array($this->posts_DATA)) return -1;
+	if (!is_array($this->posts)) return -1;
 	global $wpdb;
 
-	$live_site_posts_DATA = array();
+	$live_site_posts = array();
 	$table = $this->tables['posts'];
 
-	foreach ($this->posts_DATA as $posts)
+	foreach ($this->posts as $posts)
 	{
 	    $old_post_id = $new_post_id = $posts['ID'];
 	    $posts['ID'] = '';
@@ -407,28 +381,28 @@ class SitePushMyMail
 		$posts['ID_NEW'] = $new_post_id = $wpdb->insert_id;
 
 	    echo "Inserting $table.ID:$new_post_id\n";
-	    $this->myMail_postmeta_data_insert($old_post_id, $new_post_id);
+	    $this->myMail_postmeta_insert($old_post_id, $new_post_id);
 
 
-	    $live_site_posts_DATA[] = $posts;
+	    $live_site_posts[] = $posts;
 	}
-	$this->posts_DATA = $live_site_posts_DATA;
+	$this->posts = $live_site_posts;
     }
 
-    private function myMail_term_taxonomy_data_set()
+    private function myMail_term_taxonomy_set()
     {	
-	if (!is_array($this->term_taxonomy_DATA)) return -1;
+	if (!is_array($this->term_taxonomy)) return -1;
 
-	foreach ($this->term_taxonomy_DATA as $taxonomy)
+	foreach ($this->term_taxonomy as $taxonomy)
 	{
 	    print_r($taxonomy);
 	}
     }
 
-    private function myMail_postmeta_data_get($my_wpdb)
+    private function myMail_postmeta_get($my_wpdb)
     {
-	if (count($this->posts_DATA_ID) <= 0) return -1;
-	$post_id = implode(',', array_keys($this->posts_DATA_ID));
+	if (count($this->posts) <= 0) return -1;
+	$post_id = implode(',', array_keys($this->posts));
 
 	$table = $this->tables['postmeta'];
 	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE post_id IN ($post_id)");
@@ -438,15 +412,13 @@ class SitePushMyMail
 	{
 	    if (strpos($data->meta_key, '_edit_') !== FALSE) continue;
 
-	    $this->postmeta_DATA[$data->post_id][$data->meta_id] = $data;
-	    $this->postmeta_META_ID[$data->post_id][] = $data->meta_id;
+	    $this->postmeta[$data->post_id][$data->meta_id] = $data;
 	}
     }
 
-    private function myMail_posts_data_get($my_wpdb)
+    private function myMail_posts_get($my_wpdb)
     {
-	if (count($this->term_relationships_OBJECT_ID) <= 0) return -1;
-	$post_id = implode(',', $this->term_relationships_OBJECT_ID);
+	$post_id = implode(',', array_keys($this->term_relationships));
 
 	$table = $this->tables['posts'];
 	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE ID IN ($post_id)");
@@ -454,14 +426,13 @@ class SitePushMyMail
 
 	foreach ($result as $data)
 	{
-	    $this->posts_DATA[$data->ID] = $data;
-	    $this->posts_DATA_ID[$data->ID] = $data->ID;
+	    $this->posts[$data->ID] = $data;
 	}
     }
 
-    private function myMail_term_relationships_data_get($my_wpdb)
+    private function myMail_term_relationships_get($my_wpdb)
     {
-	$term_taxonomy = implode(',', array_keys($this->term_taxonomy_DATA));
+	$term_taxonomy = implode(',', array_keys($this->term_taxonomy));
 
 	$table = $this->tables['term_relationships'];
 	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE term_taxonomy_id IN ($term_taxonomy)");
@@ -469,14 +440,13 @@ class SitePushMyMail
 
 	foreach ($result as $data)
 	{
-	    $this->term_relationships_DATA[$data->object_id][$data->term_taxonomy_id] = $data;
-	    $this->term_relationships_OBJECT_ID[$data->object_id] = $data->object_id;
+	    $this->term_relationships[$data->object_id][$data->term_taxonomy_id] = $data;
 	}
     }
 
-    private function myMail_terms_data_get($my_wpdb)
+    private function myMail_terms_get($my_wpdb)
     {
-	$terms_id = implode(',', array_keys($this->term_taxonomy_DATA));
+	$terms_id = implode(',', array_keys($this->term_taxonomy));
 
 	$table = $this->tables['terms'];
 	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE term_id IN ($terms_id)");
@@ -484,11 +454,11 @@ class SitePushMyMail
 
 	foreach ($result as $data)
 	{
-	    $this->terms_DATA[$data->term_id] = $data;
+	    $this->terms[$data->term_id] = $data;
 	}
     }
 
-    private function myMail_term_taxonomy_data_get($my_wpdb)
+    private function myMail_term_taxonomy_get($my_wpdb)
     {
 	$table = $this->tables['term_taxonomy'];
 	$result = $my_wpdb->get_results("SELECT * FROM `$table` WHERE taxonomy = 'newsletter_lists'");
@@ -496,8 +466,7 @@ class SitePushMyMail
 
 	foreach ($result as $data)
 	{
-	    $this->term_taxonomy_DATA[$data->term_taxonomy_id] = $data;
-	    $this->term_taxonomy_TERM_ID[$data->term_taxonomy_id] = $data->term_id;
+	    $this->term_taxonomy[$data->term_taxonomy_id] = $data;
 	}
     }
 
