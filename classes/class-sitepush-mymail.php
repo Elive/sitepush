@@ -210,15 +210,23 @@ class SitePushMyMail
 			if ($this->newsletter->dest->term_relationships_DATA[$ID] ==
 			    $this->newsletter->source->term_relationships_DATA[$ID])
 			{
-			    echo ", relationships are still the same\n";
+			    echo ", relationships are still the same";
 			}
 			else
 			{
-			    echo ", relationships has changed\n";
+			    echo ", relationships has changed";
 			}
 
 			//Check if postmeta has changed.
-			//if ($this->newsletter->dest->
+			if ($this->newsletter->dest->postmeta_DATA[$ID] ==
+			    $this->newsletter->source->postmeta_DATA[$ID])
+			{
+			    echo ", postmeta are still the same \n";
+			}
+			else
+			{
+			    echo ", postmeta has changed\n";
+			}
 		    }
 		    else
 		    {
@@ -425,6 +433,8 @@ class SitePushMyMail
 
 	while($row = mysql_fetch_assoc($result))
 	{
+	    if (strpos($row['meta_key'], '_edit_') !== FALSE) continue;
+
 	    $this->postmeta_DATA[$row['post_id']][$row['meta_id']] = (object) $row;
 	    $this->postmeta_META_ID[$row['post_id']][] = $row['meta_id'];
 	}
