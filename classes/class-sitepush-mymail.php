@@ -150,7 +150,7 @@ class SitePushMyMail
 
 
 
-    public function initialize()
+    public function import_subscribers_to_source()
     {
 	global $wpdb;
 

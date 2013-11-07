@@ -242,7 +242,11 @@ class SitePushCore
 		
 		$mymail = new SitePushMyMail(
 		    $this->options->get_db_params_for_site($this->dest),
-		    $this->options->get_db_params_for_site($this->source));
+		    $this->options->get_db_params_for_site($this->source),
+		    $this->dest_backup_path);
+		$mymail->myMail_get_source();
+		$mymail->myMail_get_dest();
+		$mymail->import_subscribers_to_source();
 
 		//work out which table(s) to push
 		$tables = '';
@@ -309,8 +313,6 @@ class SitePushCore
 		    $this->dest_fix_url_in_db();
 		    $this->add_result("END: Fixing site URL in Database",2);		
 		}
-		$mymail->initialize();
-		
 		return $result;
 	}
 
