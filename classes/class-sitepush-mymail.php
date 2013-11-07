@@ -25,6 +25,7 @@ if (isset($_GET['mymail_test']))
     $mymail->myMail_get_source();
     $mymail->myMail_get_dest();
     $mymail->initialize();
+    exit(0);
 }
 
 class SitePushMyMail
@@ -41,6 +42,7 @@ class SitePushMyMail
     //source and destination db data
     private $db_dest;
     private $db_source;
+    private $backup_path;
 
     private $limits;
     private $offset;
@@ -68,7 +70,7 @@ class SitePushMyMail
 
     public $debug_on = FALSE;
 
-    function __construct($dest, $source)
+    function __construct($dest, $source, $backup_path)
     {
 	//Create array for destination data from source.
 	$this->newsletter['dest'] = $this->newsletter['source'];
@@ -79,6 +81,7 @@ class SitePushMyMail
 
 	$this->db_dest = $dest;
 	$this->db_source = $source;
+	$this->backup_path = $backup_path;
 
 	//TODO: implement limits/offsets
 	$this->myMail_limits_get();
@@ -150,24 +153,13 @@ class SitePushMyMail
     public function initialize()
     {
 	global $wpdb;
-	global $mymail_subscriber;
-
-	/*
-	if (function_exists(mymail_subscribe))
-	{
-	    echo "Found Function \n";
-	    $email = 'rave@rave.com';
-	    $user_data = array(
-		'firstname' => 'Rave',
-		'lastname' => 'Lave');
-
-	    $list = array('wordpress-users', 'crazy-devels');
-	    mymail_subscribe($email, $user_data, $list, NULL, TRUE);
-	    return;
-	}*/
-	
 
 	//List all posts ids
+	$csv_header = array('email', 'firstname', 'lastname', 'ip', 'signupip',
+	'signuptime', 'lang', 'lists', 'REMOVE THIS LINE BEFORE IMPORT');
+
+	$new_imports = array($csv_header);
+
 	foreach ($this->newsletter->dest->posts as $ID => $post)
 	{
 	    //Check if post_name is 32 char long.MD5SUM
@@ -175,11 +167,33 @@ class SitePushMyMail
 	    //Check if post_name's title is an email [post_title]
 	    if (!is_email($this->newsletter->dest->posts[$ID]->post_title)) continue;
 
-	    /*
+	    $userdata = self::myMail_userdata_prepare(
+		$this->newsletter->dest->posts[$ID],
+		$this->newsletter->dest->postmeta[$ID]);
+	    $userdata = array_merge($userdata, $userdata['_meta']);
+	    unset($userdata['_meta']);
+
+	    $lists = self::myMail_lists_prepare(
+		$this->newsletter->dest->term_relationships[$ID],
+		$this->newsletter->dest->term_taxonomy,
+		$this->newsletter->dest->terms);
+	    $userdata['lists'] = implode(',', $lists);
+
+	    $csv_data = $userdata;
+	    unset($userdata);
+	    unset($lists);
+
+	    $email = $this->newsletter->dest->posts[$ID]->post_title;
 	    //Check if source database has this post_name.
-	    if ($source_id = self::myMail_posts_has_POST_NAME($this->newsletter->source->posts, $post->post_name))
+	    if ($source_id = self::myMail_posts_has_POST_NAME($this->newsletter->source->posts, $post->post_name) === FALSE)
 	    {
-		$email = $this->newsletter->dest->posts[$ID]->post_title;
+		echo "New Subscribers $email\n";
+		$new_imports[] = $userdata;
+		$this->myMail_Insert_Subscriber($ID);
+	    }
+	    /*
+	    else
+	    {
 		echo "Old Subscriber: $email";
 
 		//Check if old subscriber post has changed.
@@ -224,41 +238,45 @@ class SitePushMyMail
 			echo ", it seems the posts ID has changed, (this is not normal)\n";
 		    }
 		}
-	    }
-	    else
-	    {*/
-		$email = $this->newsletter->dest->posts[$ID]->post_title;
-		//echo "New Subscriber: $email\n";
-
-		$userdata = self::myMail_userdata_prepare(
-		    $this->newsletter->dest->posts[$ID],
-		    $this->newsletter->dest->postmeta[$ID]);
-
-		$lists = self::myMail_lists_prepare(
-		    $this->newsletter->dest->term_relationships[$ID],
-		    $this->newsletter->dest->term_taxonomy,
-		    $this->newsletter->dest->terms);
-
-		$mymail_subscriber->subscribe($email, $userdata, $lists, NULL, true);
-
-		/*
-		$wpdb->show_errors();
-     
-		$this->myMail_posts_insert($wpdb,
-		    $this->newsletter->dest->posts[$ID]);
-
-		$this->myMail_postmeta_insert($wpdb, 
-		    $this->newsletter->dest->posts[$ID],
-		    $this->newsletter->dest->postmeta[$ID]);
-     
-		$this->myMail_term_relationships_insert($wpdb,
-		    $this->newsletter->dest->posts[$ID],
-		    $this->newsletter->dest->term_relationships[$ID]);
-	    }
-		*/
-
+	    }*/
 	}
+	$timestamp = date('Ymd-His');
+
+	$filename = "myMail-{$this->db_dest['name']}-{$timestamp}.csv";
+	$this->myMail_Export_Subscriber($new_imports, $filename);
     }
+
+    private function myMail_Export_Subscriber($data, $filename)
+    {
+	$fp = fopen($this->backup_path."/{$filename}", 'w');
+
+	foreach ($data as $fields)
+	{
+	    fputcsv($fp, $fields, ';');
+	}
+	fclose($fp);
+    }
+
+    private function myMail_Insert_Subscriber($ID)
+    {
+	global $mymail_subscriber;
+	//TODO: verify that this global variable exists!!
+
+	$email = $this->newsletter->dest->posts[$ID]->post_title;
+	$status = $this->newsletter->dest->posts[$ID]->post_status;
+
+	$userdata = self::myMail_userdata_prepare(
+	    $this->newsletter->dest->posts[$ID],
+	    $this->newsletter->dest->postmeta[$ID]);
+
+	$lists = self::myMail_lists_prepare(
+	    $this->newsletter->dest->term_relationships[$ID],
+	    $this->newsletter->dest->term_taxonomy,
+	    $this->newsletter->dest->terms);
+
+	$mymail_subscriber->insert($email, $status, $userdata, $lists, NULL, true);
+    }
+
 
     private static function myMail_lists_prepare($term_relationships, $term_taxonomy, $terms)
     {
@@ -297,12 +315,12 @@ class SitePushMyMail
 	    $data = unserialize($_meta->meta_value);
 	    $userdata->firstname = html_entity_decode($data['firstname'], ENT_QUOTES);
 	    $userdata->lastname = $data['lastname'];
+	    $userdata->_meta->ip = $data['ip'];
+	    $userdata->_meta->signupip = $data['signupip'];
+	    $userdata->_meta->signuptime = $data['signuptime'];
+	    $userdata->_meta->lang = $data['lang'];
 	    break;
 	}
-	$userdata->_meta->ip = '190.80.8.11';
-	$userdata->_meta->signupip = '190.80.8.12';
-	$userdata->_meta->signuptime = current_time('timestamp');
-	$userdata->_meta->lang = mymail_get_lang();
 
 	$userdata->_meta = (array) $userdata->_meta;
 	$userdata = (array) $userdata;
@@ -316,7 +334,7 @@ class SitePushMyMail
 	if ($result) return $result;
 	return FALSE;
     }
-    
+
     private static function myMail_term_relationship_exists($my_wpdb, $object_id, $term_taxonomy_id)
     {
 
