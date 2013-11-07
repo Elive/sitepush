@@ -89,7 +89,8 @@ class SitePushMyMail
     }
     public function myMail_get_source()
     {
-	echo 'Getting Source Data'."\n";
+	if ($this->debug_on)
+	    echo 'Getting Source Data'."\n";
 	global $wpdb;
 
 	$this->myMail_term_taxonomy_get($wpdb);
@@ -118,7 +119,8 @@ class SitePushMyMail
 
     public function myMail_get_dest()
     {
-	echo 'Getting Dest Data'."\n";
+	if ($this->debug_on)
+	    echo 'Getting Dest Data'."\n";
 
 	//Connect to Dest database
 	$wpdb_dest = new wpdb($this->db_dest['user'], $this->db_dest['pw'], $this->db_dest['name'], $this->db_dest['host']);
@@ -156,10 +158,10 @@ class SitePushMyMail
 
 	//List all posts ids
 	$csv_header = array('email', 'firstname', 'lastname', 'ip', 'signupip',
-	'signuptime', 'lang', 'lists', 'REMOVE THIS LINE BEFORE IMPORT');
+	    'signuptime', 'lang', 'lists', 'REMOVE THIS LINE BEFORE IMPORT');
 
 	$new_imports = array($csv_header);
-
+	$new_post_count = 0;
 	foreach ($this->newsletter->dest->posts as $ID => $post)
 	{
 	    //Check if post_name is 32 char long.MD5SUM
@@ -184,12 +186,14 @@ class SitePushMyMail
 	    unset($lists);
 
 	    $email = $this->newsletter->dest->posts[$ID]->post_title;
-	    //Check if source database has this post_name.
+	    //Check if source database DOES NOT HAVE this post_name.
 	    if ($source_id = self::myMail_posts_has_POST_NAME($this->newsletter->source->posts, $post->post_name) === FALSE)
 	    {
-		echo "New Subscribers $email\n";
+		if ($this->debug_on)
+		    echo "New Subscribers $email\n";
 		$new_imports[] = $csv_data;
 		$this->myMail_Insert_Subscriber($ID);
+		$new_post_count++;
 	    }
 	    /*
 	    else
@@ -238,12 +242,18 @@ class SitePushMyMail
 			echo ", it seems the posts ID has changed, (this is not normal)\n";
 		    }
 		}
-	    }*/
+    }*/
 	}
+	echo "[9] Imported $new_post_count new subscribers!\n";
+
 	$timestamp = date('Ymd-His');
 
-	$filename = "myMail-{$this->db_dest['name']}-{$timestamp}.csv";
-	$this->myMail_Export_Subscriber($new_imports, $filename);
+	$filename = "myMail-{$this->db_dest['name']}-{$timestamp}.csv \n";
+	if (count($new_imports) > 1)
+	{
+    	    echo "[9] Saving CSV:{$this->backup_path}/$filename";
+	    $this->myMail_Export_Subscriber($new_imports, $filename);
+	}
     }
 
     private function myMail_Export_Subscriber($data, $filename)
@@ -377,7 +387,8 @@ class SitePushMyMail
 		continue;
 
 	    $my_wpdb->insert($my_wpdb->term_relationships, (array) $term_relationships);
-	    echo "Inserting $my_wpdb->term_relationships.object_id:$term_relationships->object_id 
+	    if ($this->debug_on)
+		echo "Inserting $my_wpdb->term_relationships.object_id:$term_relationships->object_id 
 		-- $my_wpdb->term_relationships.term_taxonomy_id:$term_relationships->term_taxonomy_id\n";
 	}
     }
@@ -501,7 +512,8 @@ class SitePushMyMail
 	$post_id = implode(',', array_keys($this->posts));
 
 	$result = $my_wpdb->get_results("SELECT * FROM `$wpdb->postmeta` WHERE post_id IN ($post_id)");
-	echo $my_wpdb->last_query."\n";
+	if ($this->debug_on)
+	    echo $my_wpdb->last_query."\n";
 	if (!is_array($result)) return;
 
 	foreach ($result as $data)
@@ -518,7 +530,8 @@ class SitePushMyMail
 	$post_id = implode(',', array_keys($this->term_relationships));
 
 	$result = $my_wpdb->get_results("SELECT * FROM `$wpdb->posts` WHERE ID IN ($post_id)");
-	echo $my_wpdb->last_query."\n";
+	if ($this->debug_on)
+	    echo $my_wpdb->last_query."\n";
 	if (!is_array($result)) return;
 
 	foreach ($result as $data)
@@ -533,7 +546,8 @@ class SitePushMyMail
 	$term_taxonomy = implode(',', array_keys($this->term_taxonomy));
 
 	$result = $my_wpdb->get_results("SELECT * FROM `$wpdb->term_relationships` WHERE term_taxonomy_id IN ($term_taxonomy)");
-	echo $my_wpdb->last_query."\n";
+	if ($this->debug_on)
+	    echo $my_wpdb->last_query."\n";
 	if (!is_array($result)) return;
 
 	foreach ($result as $data)
@@ -548,7 +562,8 @@ class SitePushMyMail
 	$terms_id = implode(',', array_keys($this->term_taxonomy));
 
 	$result = $my_wpdb->get_results("SELECT * FROM `$wpdb->terms` WHERE term_id IN ($terms_id)");
-	echo $my_wpdb->last_query."\n";
+	if ($this->debug_on)
+	    echo $my_wpdb->last_query."\n";
 	if (!is_array($result)) return;
 
 	foreach ($result as $data)
@@ -561,7 +576,8 @@ class SitePushMyMail
     {
 	global $wpdb;
 	$result = $my_wpdb->get_results("SELECT * FROM `$wpdb->term_taxonomy` WHERE taxonomy = 'newsletter_lists'");
-	echo $my_wpdb->last_query."\n";
+	if ($this->debug_on)
+	    echo $my_wpdb->last_query."\n";
 	if (!is_array($result)) return;
 
 	foreach ($result as $data)
