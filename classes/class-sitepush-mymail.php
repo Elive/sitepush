@@ -25,7 +25,6 @@ if (isset($_GET['mymail_test']))
     $mymail->myMail_get_source();
     $mymail->myMail_get_dest();
     $mymail->initialize();
-    exit(0);
 }
 
 class SitePushMyMail
@@ -66,6 +65,8 @@ class SitePushMyMail
 	'posts' => array(),
 	'postmeta' => array(),
     ));
+
+    public $debug_on = FALSE;
 
     function __construct($dest, $source)
     {
@@ -149,6 +150,23 @@ class SitePushMyMail
     public function initialize()
     {
 	global $wpdb;
+	global $mymail_subscriber;
+
+	/*
+	if (function_exists(mymail_subscribe))
+	{
+	    echo "Found Function \n";
+	    $email = 'rave@rave.com';
+	    $user_data = array(
+		'firstname' => 'Rave',
+		'lastname' => 'Lave');
+
+	    $list = array('wordpress-users', 'crazy-devels');
+	    mymail_subscribe($email, $user_data, $list, NULL, TRUE);
+	    return;
+	}*/
+	
+
 	//List all posts ids
 	foreach ($this->newsletter->dest->posts as $ID => $post)
 	{
@@ -157,6 +175,7 @@ class SitePushMyMail
 	    //Check if post_name's title is an email [post_title]
 	    if (!is_email($this->newsletter->dest->posts[$ID]->post_title)) continue;
 
+	    /*
 	    //Check if source database has this post_name.
 	    if ($source_id = self::myMail_posts_has_POST_NAME($this->newsletter->source->posts, $post->post_name))
 	    {
@@ -207,26 +226,104 @@ class SitePushMyMail
 		}
 	    }
 	    else
-	    {
+	    {*/
 		$email = $this->newsletter->dest->posts[$ID]->post_title;
-		echo "New Subscriber: $email\n";
+		//echo "New Subscriber: $email\n";
 
+		$userdata = self::myMail_userdata_prepare(
+		    $this->newsletter->dest->posts[$ID],
+		    $this->newsletter->dest->postmeta[$ID]);
+
+		$lists = self::myMail_lists_prepare(
+		    $this->newsletter->dest->term_relationships[$ID],
+		    $this->newsletter->dest->term_taxonomy,
+		    $this->newsletter->dest->terms);
+
+		$mymail_subscriber->subscribe($email, $userdata, $lists, NULL, true);
+
+		/*
 		$wpdb->show_errors();
-		$wpdb->insert($wpdb->posts, (array) $this->newsletter->dest->posts[$ID]);
+     
+		$this->myMail_posts_insert($wpdb,
+		    $this->newsletter->dest->posts[$ID]);
 
-		foreach ($this->newsletter->dest->postmeta[$ID] as $meta_id => $postmeta)
-		{
-		    $wpdb->insert($wpdb->postmeta, (array) $postmeta);
-		}
-
-		foreach ($this->newsletter->dest->term_relationships[$ID] as $object_id => $term_relationships)
-		{
-		    $wpdb->insert($wpdb->term_relationships, (array) $term_relationships);
-		}
+		$this->myMail_postmeta_insert($wpdb, 
+		    $this->newsletter->dest->posts[$ID],
+		    $this->newsletter->dest->postmeta[$ID]);
+     
+		$this->myMail_term_relationships_insert($wpdb,
+		    $this->newsletter->dest->posts[$ID],
+		    $this->newsletter->dest->term_relationships[$ID]);
 	    }
+		*/
 
 	}
-	print_r($this->newsletter);
+    }
+
+    private static function myMail_lists_prepare($term_relationships, $term_taxonomy, $terms)
+    {
+	$lists = array();
+
+	foreach ($term_relationships as $term_taxonomy_id => $term_relationships_info)
+	{
+	    $lists[] = $terms[$term_taxonomy[$term_taxonomy_id]->term_id]->slug;
+	}
+	return $lists;
+    }
+
+    private static function myMail_userdata_prepare($posts, $postmeta)
+    {
+	$userdata = array(
+	    'email' => '',
+	    'firstname' => '',
+	    'lastname' => '',
+	    '_meta' => 
+	    array(
+		'ip' => '',
+		'signupip' => '',
+		'signuptime' => '',
+		'lang' => '')
+	    );
+
+	$userdata = (object) $userdata;
+	$userdata->_meta = (object) $userdata->_meta;
+
+	$userdata->email = $posts->post_title;
+
+	foreach ($postmeta as $_meta)
+	{
+	    if ($_meta->meta_key != 'mymail-userdata') continue;
+
+	    $data = unserialize($_meta->meta_value);
+	    $userdata->firstname = html_entity_decode($data['firstname'], ENT_QUOTES);
+	    $userdata->lastname = $data['lastname'];
+	    break;
+	}
+	$userdata->_meta->ip = '190.80.8.11';
+	$userdata->_meta->signupip = '190.80.8.12';
+	$userdata->_meta->signuptime = current_time('timestamp');
+	$userdata->_meta->lang = mymail_get_lang();
+
+	$userdata->_meta = (array) $userdata->_meta;
+	$userdata = (array) $userdata;
+	return $userdata;
+    }
+
+    private static function myMail_wpdb_id_exists($my_wpdb, $table, $column, $id)
+    {
+	$result = $my_wpdb->get_results("SELECT * FROM $table WHERE $column = '$id'");
+	if (count($result) == 0) return FALSE;
+	if ($result) return $result;
+	return FALSE;
+    }
+    
+    private static function myMail_term_relationship_exists($my_wpdb, $object_id, $term_taxonomy_id)
+    {
+
+	$result = $my_wpdb->get_results("SELECT * FROM wp_term_relationships WHERE object_id = $object_id AND term_taxonomy_id = $term_taxonomy_id");
+	if (count($result) == 0) return FALSE;
+	if ($result) return $result;
+	return FALSE;
     }
 
     private static function myMail_posts_has_POST_NAME($DATA, $post_name)
@@ -241,52 +338,33 @@ class SitePushMyMail
 	return FALSE;
     }
 
-    //FIXME Fix all _insert functions
-    //FIXME Fix all _insert functions
-    //FIXME Fix all _insert functions
-    private function myMail_term_relationships_insert()
+    private function myMail_term_relationships_insert($my_wpdb, &$posts, &$term_relationships_array)
     {
-	if (!is_array($this->term_taxonomy)) return -1;
-	if (!is_array($this->posts)) return -1;
-	if (!is_array($this->term_relationships)) return -1;
-	global $wpdb;
-
-	$live_site_term_relationships = array();
-	$table = $this->tables->term_relationships;
-
-	foreach ($this->term_relationships as $term_relationships)
+	foreach ($term_relationships_array as $term_relationships)
 	{
-	    $object_id = $term_relationships['object_id'];
-	    $term_taxonomy_id = $term_relationships['term_taxonomy_id'];
-
-	    foreach ($this->term_taxonomy as $term_taxonomy)
+	    $term_relationships->object_id = isset($posts->ID_NEW) ? $posts->ID_NEW : $posts->ID;
+	    $match = FALSE;
+	    foreach ($this->newsletter->source->term_relationships[$term_relationships->object_id] as $s_term_relationships)
 	    {
-		if ($term_relationships['term_taxonomy_id'] != $term_taxonomy['term_taxonomy_id']) continue;
-
-		$term_taxonomy_id = $term_taxonomy['term_taxonomy_id'];
-		if (isset($term_taxonomy['term_taxonomy_id_NEW']))
-		    $term_taxonomy_id = $term_taxonomy['term_taxonomy_id_NEW'];
-		break;
+		if ($term_relationships == $s_term_relationships)
+		{
+		    $match = TRUE;
+		    break;
+		}
 	    }
+	    if ($match == TRUE) continue;
+	    if (self::myMail_term_relationship_exists($my_wpdb,
+		$term_relationships->object_id,
+		$term_relationships->term_taxonomy_id) !== FALSE)
+		continue;
 
-	    foreach ($this->posts as $posts)
-	    {
-		if ($term_relationships['object_id'] != $posts['ID']) continue;
-
-		$object_id = $posts['ID'];
-		if (isset($posts['ID_NEW']))
-		    $object_id = $posts['ID_NEW'];
-		break;
-	    }
-
-	    $term_relationships['object_id'] = $object_id;
-	    $term_relationships['term_taxonomy_id'] = $term_taxonomy_id;
-
-	    $wpdb->insert($wpdb->term_relationships, $term_relationships);
-	    echo "Inserting $table.object_id:$object_id -- $table.term_taxonomy_id:$term_taxonomy_id\n";
+	    $my_wpdb->insert($my_wpdb->term_relationships, (array) $term_relationships);
+	    echo "Inserting $my_wpdb->term_relationships.object_id:$term_relationships->object_id 
+		-- $my_wpdb->term_relationships.term_taxonomy_id:$term_relationships->term_taxonomy_id\n";
 	}
     }
 
+    //FIXME Fix all _insert functions
     private function myMail_term_taxonomy_insert($old_term_id, $new_term_id)
     {
 	if (!is_array($this->terms)) return -1;
@@ -342,60 +420,50 @@ class SitePushMyMail
 	$this->terms = $live_site_terms;
     }
 
-    private function myMail_postmeta_insert($old_post_id, $new_post_id)
+    private function myMail_postmeta_insert($my_wpdb, &$posts, &$postmeta_array)
     {
-	if (!is_array($this->postmeta)) return -1;
-	if (!is_array($this->posts)) return -1;
-	global $wpdb;
+	$old_meta_id = $new_meta_id = $postmeta->meta_id;
 
-	$table = $this->tables->postmeta;
-	foreach ($this->postmeta as $postmeta)
+	foreach ($postmeta_array as $postmeta)
 	{
-	    if ($postmeta['post_id'] != $old_post_id) continue; //FIXME: if we want to pass back data to postmeta change this statement
+	    if (self::myMail_wpdb_id_exists($my_wpdb, $my_wpdb->postmeta, 'meta_id', $postmeta->meta_id) !== FALSE)
+	    {
+		$postmeta->meta_id = '';
+	    }
 
-	    $old_meta_id = $new_meta_id = $postmeta['meta_id'];
-	    $postmeta['meta_id'] = '';
+	    if ((isset($posts->ID_NEW)) &&
+		($posts->ID != $posts->ID_NEW))
+	    {
+		$postmeta->post_id = $posts->ID_NEW;
+	    }
 
-	    if ($old_post_id != $new_post_id)
-		$postmeta['post_id'] = $new_post_id;
+	    $my_wpdb->insert($my_wpdb->postmeta, (array) $postmeta);
+	    $postmeta->meta_id = $old_meta_id;
 
-	    $wpdb->insert($wpdb->postmeta, $postmeta);
+	    if ($postmeta->meta_id != $my_wpdb->insert_id)
+		$postmeta->meta_id_NEW = $new_meta_id = $my_wpdb->insert_id;
 
-	    echo "Inserting $table.post_id: $postmeta[post_id] \n";
-
-	    $postmeta['meta_id'] = $old_meta_id;
-	    if ($old_meta_id != $wpdb->insert_id)
-		$postmeta['meta_id_NEW'] = $new_meta_id = $wpdb->insert_id;
+	    echo "Inserting $my_wpdb->postmeta.meta_id: $new_meta_id \n";
 	}
     }
 
 
-    private function myMail_posts_insert()
+    private function myMail_posts_insert($my_wpdb, &$posts)
     {
-	if (!is_array($this->posts)) return -1;
-	global $wpdb;
-
-	$live_site_posts = array();
-	$table = $this->tables->posts;
-
-	foreach ($this->posts as $posts)
+	$old_post_id = $new_post_id = $posts->ID;
+	if (self::myMail_wpdb_id_exists($my_wpdb, $my_wpdb->posts, 'ID', $posts->ID) !== FALSE)
 	{
-	    $old_post_id = $new_post_id = $posts['ID'];
-	    $posts['ID'] = '';
-
-	    $wpdb->insert($wpdb->posts, $posts);
-
-	    $posts['ID'] = $old_post_id;
-	    if ($old_post_id != $wpdb->insert_id)
-		$posts['ID_NEW'] = $new_post_id = $wpdb->insert_id;
-
-	    echo "Inserting $table.ID:$new_post_id\n";
-	    $this->myMail_postmeta_insert($old_post_id, $new_post_id);
-
-
-	    $live_site_posts[] = $posts;
+	    $posts->ID = '';
 	}
-	$this->posts = $live_site_posts;
+
+	$my_wpdb->insert($my_wpdb->posts, (array) $posts);
+	$posts->ID = $old_post_id;
+
+	if ($posts->ID != $my_wpdb->insert_id)
+	    $posts->ID_NEW = $new_post_id = $my_wpdb->insert_id;
+
+	echo "Inserting $my_wpdb->posts.ID:$new_post_id\n";
+	$this->myMail_postmeta_insert($my_wpdb, $posts->ID);
     }
 
     private function myMail_term_taxonomy_set()
