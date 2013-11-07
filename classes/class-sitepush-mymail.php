@@ -188,7 +188,7 @@ class SitePushMyMail
 	    if ($source_id = self::myMail_posts_has_POST_NAME($this->newsletter->source->posts, $post->post_name) === FALSE)
 	    {
 		echo "New Subscribers $email\n";
-		$new_imports[] = $userdata;
+		$new_imports[] = $csv_data;
 		$this->myMail_Insert_Subscriber($ID);
 	    }
 	    /*
