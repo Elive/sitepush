@@ -378,9 +378,8 @@ class SitePushCore
 			else
 			{
 			    $this->add_result("Found UTF-8, After mb_detect_encoding FAILED!");
-			    $data = utf8_encode($data);
-			    $this->add_result('<b>WARNING:</b> utf8_encode: '.$mb_encoding);
 			    $mb_encoding = 'UTF-8';
+			    $this->add_result('<b>WARNING:</b> utf8_encode: '.$mb_encoding);
 			}
 		    }
 
