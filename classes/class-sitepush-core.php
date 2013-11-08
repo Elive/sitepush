@@ -380,9 +380,9 @@ class SitePushCore
 			    $this->add_result("Found UTF-8, After mb_detect_encoding FAILED!");
 			    $mb_encoding = 'UTF-8';
 			    $this->add_result('<b>WARNING:</b> utf8_encode: '.$mb_encoding);
+			    $data = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.strlen('$2').':\"$2\";'", $data);
 			}
 		    }
-
 
 		    if ($mb_encoding == 'UTF-8')
 		    {
