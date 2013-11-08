@@ -368,7 +368,6 @@ class SitePushCore
 		{
 		    $data = $row[0];
 		    $mb_encoding = mb_detect_encoding($data);
-		    $mb_failed = FALSE;
 
 		    if (empty($mb_encoding) || !$mb_encoding)
 		    {
@@ -378,7 +377,6 @@ class SitePushCore
 			}
 			else
 			{
-			    $mb_failed = TRUE;
 			    $this->add_result("Found UTF-8, After mb_detect_encoding FAILED!");
 			    $mb_encoding = 'UTF-8';
 			    $this->add_result('<b>WARNING:</b> utf8_encode: '.$mb_encoding);
@@ -390,10 +388,7 @@ class SitePushCore
 			//$this->add_result('Serialized Data is UTF-8');
 
 			$this->replace_url($search, $replace, $data);
-			if ($mb_failed)
-    			    $data = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.strlen('$2').':\"$2\";'", $data);
-			else
-			    $data = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.mb_strlen('$2').':\"$2\";'", $data);
+			$data = preg_replace('!s:(\d+):"(.*?)";!se', "'s:'.mb_strlen('$2').':\"$2\";'", $data);
 
 			if ($data == $row[0])
 			    $this->add_result('Nothing Changed');
