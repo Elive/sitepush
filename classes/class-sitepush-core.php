@@ -403,7 +403,9 @@ class SitePushCore
 			    $this->dest_sql_url_update($table, $column, $data, $row[0]);
 			}
 			else
+			    $this->add_result('<b>*********************************************</b>');
 			    $this->add_result('<b>WARNING:</b> uncommon encoding: '.$mb_encoding);
+			    $this->add_result('<b>*********************************************</b>');
 		    }
 		}
 		else
