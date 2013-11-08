@@ -369,6 +369,22 @@ class SitePushCore
 		    $data = $row[0];
 		    $mb_encoding = mb_detect_encoding($data);
 
+		    if (empty($mb_encoding) || !$mb_encoding)
+		    {
+			if (preg_match('%^(?:[\x09\x0A\x0D\x20-\x7E])*$%xs', $data))
+			{
+			    $this->add_result("Not UTF-8");
+			}
+			else
+			{
+			    $this->add_result("Found UTF-8, After mb_detect_encoding FAILED!");
+			    $data = utf8_encode($data);
+			    $this->add_result('<b>WARNING:</b> utf8_encode: '.$mb_encoding);
+			    $mb_encoding = 'UTF-8';
+			}
+		    }
+
+
 		    if ($mb_encoding == 'UTF-8')
 		    {
 			//$this->add_result('Serialized Data is UTF-8');
